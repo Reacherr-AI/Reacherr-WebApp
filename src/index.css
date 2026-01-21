@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sound Wave Animations */
+@keyframes soundWave {
+  0%, 100% {
+    d: path("M0,24 Q12,12 24,24 T48,24 T72,24 T96,24 T120,24 T144,24 T168,24 T192,24");
+  }
+  25% {
+    d: path("M0,24 Q12,8 24,24 T48,16 T72,32 T96,20 T120,28 T144,18 T168,26 T192,24");
+  }
+  50% {
+    d: path("M0,24 Q12,16 24,24 T48,32 T72,16 T96,28 T120,20 T144,30 T168,22 T192,24");
+  }
+  75% {
+    d: path("M0,24 Q12,20 24,24 T48,28 T72,20 T96,32 T120,16 T144,24 T168,30 T192,24");
+  }
+}
+
+@keyframes soundWave2 {
+  0%, 100% {
+    d: path("M0,24 Q8,16 16,24 T32,24 T48,24 T64,24 T80,24 T96,24 T112,24 T128,24 T144,24 T160,24 T176,24 T192,24");
+  }
+  33% {
+    d: path("M0,24 Q8,12 16,24 T32,20 T48,28 T64,18 T80,26 T96,22 T112,30 T128,16 T144,32 T160,20 T176,28 T192,24");
+  }
+  66% {
+    d: path("M0,24 Q8,18 16,24 T32,26 T48,22 T64,30 T80,20 T96,28 T112,18 T128,32 T144,24 T160,26 T176,22 T192,24");
+  }
+}
+
+@keyframes soundWave3 {
+  0%, 100% {
+    d: path("M0,24 Q6,20 12,24 T24,24 T36,24 T48,24 T60,24 T72,24 T84,24 T96,24 T108,24 T120,24 T132,24 T144,24 T156,24 T168,24 T180,24 T192,24");
+  }
+  40% {
+    d: path("M0,24 Q6,18 12,24 T24,22 T36,26 T48,20 T60,28 T72,19 T84,25 T96,21 T108,27 T120,23 T132,29 T144,17 T156,31 T168,24 T180,26 T192,24");
+  }
+  80% {
+    d: path("M0,24 Q6,22 12,24 T24,26 T36,20 T48,28 T60,22 T72,26 T84,20 T96,28 T108,19 T120,25 T132,21 T144,27 T156,23 T168,29 T180,24 T192,24");
+  }
+}
+
+.sound-wave.wave-1 {
+  animation: soundWave 3s ease-in-out infinite;
+}
+
+.sound-wave.wave-2 {
+  animation: soundWave2 2.5s ease-in-out infinite;
+}
+
+.sound-wave.wave-3 {
+  animation: soundWave3 2s ease-in-out infinite;
+}
+
+@keyframes travelingWave {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(calc(100vw + 100%));
+    opacity: 0;
+  }
+}
+
+.traveling-wave {
+  animation: travelingWave 4s ease-in-out infinite;
+}
+
+/* Custom styles for browser autofill */
+/* Remove Chrome autofill styles completely */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px inherit inset !important; /* use inherited bg */
+    -webkit-text-fill-color: #ffffff !important; /* text-white */
+  caret-color: inherit !important; /* keep normal caret */
+  transition: background-color 9999s ease-in-out 0s !important; /* stop blue flash */
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+
+
+
