@@ -77,6 +77,7 @@ export interface Voice {
   displayName: string;
   gender: 'Male' | 'Female' | string;
   accent?: string; 
+  previewUrl?: string;  
 }
 
 export interface VoiceModel {

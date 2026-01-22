@@ -1,6 +1,5 @@
-import React, { useContext, useEffect, useState, useMemo } from 'react';
+import React, { useContext, useState, useMemo, useReducer, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { 
   ChevronLeft, User, Settings2, BrainCircuit, 
   Variable, BarChart4, Cpu, Edit2, Phone, 
@@ -18,184 +17,378 @@ import SegmentedMetric from '../components/AgentForm/subcomponents/SegmentedMetr
 // Tab Form Components
 import AgentForm from '../components/AgentForm/AgentForm';
 import LLMSettingsForm from '../components/AgentForm/LLMSettingsForm';
-import AudioSettingsForm from '../components/AgentForm/AudioSettingsForm'; // Renamed from CallSettingsForm
-import CallSettingsForm from '../components/AgentForm/CallSettingsForm';   // Renamed from ConversationSettingsForm
+import AudioSettingsForm from '../components/AgentForm/AudioSettingsForm';
+import CallSettingsForm from '../components/AgentForm/CallSettingsForm';
 import PostCallAnalysisForm from '../components/AgentForm/PostCallAnalysisForm';
 import FunctionSettingsForm from '../components/AgentForm/FunctionSettingsForm';
 
+import { agentReducer } from '@/reducers/agentReducer';
+import { INITIAL_AGENT_STATE } from '@/constants/initialAgentState';
+
 // API and Contexts
-import { getPhoneNumbers, getVoices, postAgent } from '../api/client';
+import {postAgent } from '../api/client';
 import { 
-  VoiceDto, AgentFormData, LLMSettingsFormData, 
-  AudioSettingsFormData, CallSettingsFormData, PostCallAnalysisData, FunctionSettingsFormData,
-  S3MetaDto
+   AgentFormData, LLMSettingsFormData, 
+  AudioSettingsFormData, CallSettingsFormData, PostCallAnalysisData, FunctionSettingsFormData,,
+  CustomFunction
 } from '../components/AgentForm/AgentForm.types';
 import { useAudioPlayer } from '../components/hooks/useAudioPlayer';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-interface PostAgentRequest {
-  businessId: number;
-  description: string;
-  knowledgeBase: S3MetaDto[];
-  lang: string;
-  numberId: number;
-  name: string;
-  voiceId: string;
-}
-
 const NAV_ITEMS = [
   { id: 'agent', label: 'Agent Identity', icon: User },
   { id: 'llm', label: 'LLM Configuration', icon: Cpu },
-  { id: 'audio-settings', label: 'Audio Settings', icon: Settings2 }, // Renamed ID for clarity
-  { id: 'call-settings', label: 'Call Settings', icon: BrainCircuit },  // Renamed ID for clarity
+  { id: 'audio-settings', label: 'Audio Settings', icon: Settings2 },
+  { id: 'call-settings', label: 'Call Settings', icon: BrainCircuit },
   { id: 'post-call', label: 'Post Call Analysis', icon: BarChart4 },
   { id: 'functions', label: 'Functions', icon: Variable },
 ];
 
 const CreateAgentPage: React.FC = () => {
+  const [agentData, dispatch] = useReducer(agentReducer, INITIAL_AGENT_STATE);
   const [activeTab, setActiveTab] = useState('agent');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [agentName, setAgentName] = useState("Healthcare Support AI");
-
-  // Dynamic Support States
-  const [availableNumbers, setAvailableNumbers] = useState<Record<string, string>>({});
-  const [availableVoices, setAvailableVoices] = useState<VoiceDto[]>([]);
-
-  // 1. DYNAMIC FORM STATES (All 6 tabs)
-  const [agentFormData, setAgentFormData] = useState<AgentFormData>({
-    name: "",
-    description: "",
-    numberId: null,
-    welcomeMessage: "",
-    firstSpeaker: 'ai',
-    userGreetingType: 'static',
-    waitDuration: 1000
-  });
-
-  const [llmData, setLlmData] = useState<LLMSettingsFormData>({
-    provider: "azure", 
-    model: "gpt-4.1-mini cluster", 
-    maxTokens: 450, 
-    temperature: 0.2, 
-    knowledgeBase: []
-  });
-
-  // Renamed from callSettingsData
-  const [audioSettingsData, setAudioSettingsData] = useState<AudioSettingsFormData>({
-    language: "en", 
-    sttProvider: "deepgram", 
-    sttModel: "nova-3", 
-    sttKeywords: "",
-    ttsProvider: "elevenlabs", 
-    ttsModel: "eleven_turbo_v2_5", 
-    ttsVoiceId: "EXAVITQu4vr4xnSDxMaL",
-    voice: { 
-      voiceId: "EXAVITQu4vr4xnSDxMaL"
-      , displayName: "Rachel"
-      , provider: "elevenlabs"
-      , gender: "Female"
-      , previewUrl: ""
-    },
-    speed: 1.0, 
-    stability: 0.75, 
-    similarityBoost: 0.75, 
-    styleExaggeration: 0.0, 
-    volume: 100, 
-    pitch: 0, 
-    temperature: 0.7
-  });
-
-  // Renamed from conversationData
-  const [callSettingsData, setCallSettingsData] = useState<CallSettingsFormData>({
-    reEngageEnabled: true,
-    reEngageMessage: "Sorry, I couldn't hear you.", 
-    ivrHangupEnabled: true,
-    reEngageAttempts: 3,
-    voicemailDetectionEnabled: false, 
-    voicemailAction: 'hangup' as 'hangup' | 'leave_message', 
-    voicemailMessage: "",
-    noResponseTime: 10.0, 
-    maxCallDuration: 10.0, 
-    maxRingDuration: 10.0,
-  });
-
-  const [postCallData, setPostCallData] = useState<PostCallAnalysisData>({
-    extractionItems: [
-      { id: 'summary', name: 'Summary', description: 'Summarize call', type: 'text', enabled: true, isOptional: false },
-      { id: 'success', name: 'Success', description: 'Was goal met?', type: 'boolean', enabled: true, isOptional: false }
-    ],
-    webhookEnabled: false,
-    webhookUrl: "",
-    webhookTimeout: 45
-  });
-
-  const [functionData, setFunctionData] = useState<FunctionSettingsFormData>({
-    transferEnabled: false, 
-    transferDetails: { name:'', description: '', phoneNumber: '', countryCode: '', isoCode: 'IN' },
-    smsEnabled: false, 
-    smsDetails: { name: '', description: '', smsType: 'static' },
-    bookingEnabled: false, 
-    bookingDetails: { calComApiKey: '', eventTypeId: '', timezone: 'UTC' },
-    checkAvailabilityEnabled: false, 
-    checkAvailabilityDetails: { calComApiKey: '', eventTypeId: '', timezone: 'UTC' },
-    customFunctions: [],
-  });
 
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
   const { addToast } = useToast();
-  const { togglePlay } = useAudioPlayer();
 
-  // 2. DYNAMIC METRICS CALCULATIONS
-  const costSegments = useMemo(() => [
-    { label: `STT (${audioSettingsData.sttProvider})`, value: 20, displayValue: "$0.02", color: "bg-emerald-400" },
-    { label: `LLM (${llmData.model})`, value: 40, displayValue: "$0.04", color: "bg-orange-400" },
-    { label: `TTS (${audioSettingsData.ttsProvider})`, value: 30, displayValue: "$0.03", color: "bg-blue-400" },
-    { label: "Platform", value: 10, displayValue: "$0.01", color: "bg-purple-400" },
-  ], [llmData.model, audioSettingsData.sttProvider, audioSettingsData.ttsProvider]);
+  // Helper to update global state via reducer
+  const updateField = useCallback((path: string, value: any) => {
+    dispatch({ type: 'UPDATE_FIELD', path, value });
+  }, []);
 
-  useEffect(() => {
-    const loadPrerequisites = async () => {
-      if (!auth?.user?.bId) return;
-      try {
-        const [numRes, voiceRes] = await Promise.all([getPhoneNumbers(auth.user.bId), getVoices()]);
-        setAvailableNumbers(numRes.data || {});
-        setAvailableVoices(voiceRes.data || []);
-      } catch (err) {
-        addToast('Failed to load system prerequisites.', 'error');
-      } finally { setIsLoading(false); }
+  const derivedAgentFormData: AgentFormData = useMemo(() => ({
+    name: agentData.agentName,
+    description: agentData.reacherrLlmData.generalPrompt,
+    numberId: null,
+    welcomeMessage: agentData.reacherrLlmData.beginMessage,
+    firstSpeaker: agentData.reacherrLlmData.startSpeaker,
+    userGreetingType: agentData.userGreetingType as any || 'static',
+    waitDuration: agentData.waitDurationMs || 1000
+  }), [agentData]);
+
+  const derivedLLMData: LLMSettingsFormData = useMemo(() => ({
+    provider: agentData.reacherrLlmData.provider || 'azure',
+    model: agentData.reacherrLlmData.model,
+    maxTokens: agentData.reacherrLlmData.maxTokens || 450,
+    temperature: agentData.reacherrLlmData.temperature || 0.2,
+    knowledgeBaseItems: [],
+    knowledgeBase: agentData.reacherrLlmData.kbConfig.knowledgeBaseIds.map((id: string) => ({ id, name: id, type: 'pdf', status: 'ready' }))
+  }), [agentData]);
+
+  const derivedAudioData: AudioSettingsFormData = useMemo(() => ({
+      language: agentData.language,
+      sttProvider: agentData.sttConfig.provider,
+      sttModel: agentData.sttConfig.model,
+      sttKeywords: agentData.sttConfig.settings.keywords.join(', '),
+      ttsProvider: agentData.ttsConfig.provider,
+      ttsModel: agentData.ttsConfig.model,
+      ttsVoiceId: agentData.ttsConfig.voiceId,
+      voice:{
+        voiceId: agentData.ttsConfig.voice?.voiceId || agentData.ttsConfig.voiceId,
+        displayName: agentData.ttsConfig.voice?.displayName || '',
+        gender: agentData.ttsConfig.voice?.gender || '',
+        provider: agentData.ttsConfig.voice?.provider || '',
+        accent: agentData.ttsConfig.voice?.accent || '',
+        previewUrl: agentData.ttsConfig.voice?.previewUrl || ''
+      },
+      speed: agentData.ttsConfig.settings.voiceSpeed,
+      stability: agentData.ttsConfig.settings.stability,
+      similarityBoost: agentData.ttsConfig.settings.similarityBoost,
+      styleExaggeration: agentData.ttsConfig.settings.styleExaggeration,
+      volume: agentData.ttsConfig.settings.volume,
+      pitch: agentData.ttsConfig.settings.pitch || 0,
+      temperature: agentData.ttsConfig.settings.voiceTemperature
+  }), [agentData]);
+
+  const derivedCallSettings: CallSettingsFormData = useMemo(() => ({
+    reEngageEnabled: agentData.reEngageAttempts > 0,
+    reEngageMessage: agentData.reEngageMessage,
+    reEngageAttempts: agentData.reEngageAttempts,
+    ivrHangupEnabled: agentData.ivrhangup,
+    voicemailDetectionEnabled: agentData.voicemailDetection?.enabled || false,
+    voicemailAction: (agentData.voicemailDetection?.action as any) || 'hangup',
+    voicemailMessage: agentData.voicemailDetection?.message || "",
+    noResponseTime: agentData.noResponseTimeoutMs / 1000,
+    maxCallDuration: agentData.maxCallDurationMs / 60000, // ms to minutes
+    maxRingDuration: agentData.ringTimeOutMs / 1000, // ms to seconds
+  }), [agentData]);
+
+  const derivedPostCallData: PostCallAnalysisData = useMemo(() => ({
+    extractionItems: agentData.postCallAnalysis.extractionItems,
+    webhookEnabled: agentData.postCallAnalysis.webhookEnabled,
+    webhookUrl: agentData.postCallAnalysis.webhookUrl,
+    webhookTimeout: agentData.postCallAnalysis.webhookTimeout,
+  }), [agentData]);
+
+  const derivedFunctionData: FunctionSettingsFormData = useMemo(() => {
+    const tools = agentData.reacherrLlmData.generalTools || [];
+    
+    const transferTool = tools.find((t: any) => t.type === 'transfer_call');
+    const smsTool = tools.find((t: any) => t.type === 'send_sms');
+    const bookingTool = tools.find((t: any) => t.type === 'book_appointment_cal');
+    const checkAvailabilityTool = tools.find((t: any) => t.type === 'check_availability_cal');
+    const customTools = tools.filter((t: any) => t.type === 'custom').map((t: any) => ({
+      id: t.name, // Assuming name is unique
+      name: t.name,
+      description: t.description,
+      endpointUrl: t.url,
+      method: t.method,
+      headers: t.headers ? Object.entries(t.headers).map(([k, v]) => ({ key: k, value: v as string })) : [],
+      parametersJson: '', // Not directly stored in backend model
+      timeoutMs: t.timeoutMs,
+      speakDuringExecution: t.speakDuringExecution,
+      speakDuringMessage: '', // Not stored
+      speakAfterExecution: t.speakAfterExecution
+    }));
+
+    return {
+      transferEnabled: !!transferTool,
+      transferDetails: { 
+        name: transferTool?.name || 'transfer_human', 
+        description: transferTool?.description || 'Transfers the call to a human agent.', 
+        phoneNumber: transferTool?.transferDestination || '', 
+        countryCode: '', isoCode: '' 
+      },
+      smsEnabled: !!smsTool,
+      smsDetails: { 
+        name: smsTool?.name || 'send_follow_up_sms', 
+        description: smsTool?.description || 'Sends a follow-up SMS to the user.', 
+        content: smsTool?.content || '', 
+        smsType: smsTool?.smsType || 'static'
+      },
+      bookingEnabled: !!bookingTool,
+      bookingDetails: { 
+        calComApiKey: bookingTool?.calApiKey || '', 
+        eventTypeId: bookingTool?.eventTypeId || '', 
+        timezone: bookingTool?.timezone || '' 
+      },
+      checkAvailabilityEnabled: !!checkAvailabilityTool,
+      checkAvailabilityDetails: { 
+        calComApiKey: checkAvailabilityTool?.calApiKey || '', 
+        eventTypeId: checkAvailabilityTool?.eventTypeId || '', 
+        timezone: checkAvailabilityTool?.timezone || '' 
+      },
+      customFunctions: customTools,
     };
-    loadPrerequisites();
-  }, [auth?.user?.bId]);
+  }, [agentData]);
+
+
+  // --- Change Handlers ---
+
+  const handleAgentFormChange = (field: keyof AgentFormData, value: any) => {
+    switch (field) {
+      case 'name': updateField('agentName', value); break;
+      case 'description': updateField('reacherrLlmData.generalPrompt', value); break;
+      case 'welcomeMessage': updateField('reacherrLlmData.beginMessage', value); break;
+      case 'firstSpeaker': updateField('reacherrLlmData.startSpeaker', value); break;
+      case 'userGreetingType': updateField('userGreetingType', value); break;
+      case 'waitDuration': updateField('waitDurationMs', value); break;
+    }
+  };
+
+  const handleLLMChange = (field: keyof LLMSettingsFormData, value: any) => {
+    switch(field) {
+        case 'provider': updateField('reacherrLlmData.provider', value); break;
+        case 'model': updateField('reacherrLlmData.model', value); break;
+        case 'maxTokens': updateField('reacherrLlmData.maxTokens', value); break;
+        case 'temperature': updateField('reacherrLlmData.temperature', value); break;
+        // Knowledge base mapping logic would go here
+    }
+  };
+
+  const handleAudioChange = (field: keyof AudioSettingsFormData, value: any) => {
+    switch (field) {
+      case 'language': updateField('language', value); break;
+      case 'sttProvider': updateField('sttConfig.provider', value); break;
+      case 'sttModel': updateField('sttConfig.model', value); break;
+      case 'sttKeywords': updateField('sttConfig.settings.keywords', typeof value === 'string' ? value.split(',') : value); break;
+      case 'ttsProvider': updateField('ttsConfig.provider', value); break;
+      case 'ttsModel': updateField('ttsConfig.model', value); break;
+      case 'ttsVoiceId': updateField('ttsConfig.voiceId', value); break;
+      case 'speed': updateField('ttsConfig.settings.voiceSpeed', value); break;
+      case 'stability': updateField('ttsConfig.settings.stability', value); break;
+      case 'similarityBoost': updateField('ttsConfig.settings.similarityBoost', value); break;
+      case 'styleExaggeration': updateField('ttsConfig.settings.styleExaggeration', value); break;
+      case 'volume': updateField('ttsConfig.settings.volume', value); break;
+      case 'temperature': updateField('ttsConfig.settings.voiceTemperature', value); break;
+      case 'pitch': updateField('ttsConfig.settings.pitch', value); break;
+    }
+  };
+
+  const handleCallSettingChange = (field: keyof CallSettingsFormData, value: any) => {
+    switch(field) {
+        case 'reEngageEnabled': 
+            // Logic: if disabled, maybe set attempts to 0 or have a flag in state?
+            // For now just updating state if it matches
+            break;
+        case 'reEngageMessage': updateField('reEngageMessage', value); break;
+        case 'reEngageAttempts': updateField('reEngageAttempts', value); break;
+        case 'ivrHangupEnabled': updateField('ivrhangup', value); break;
+        case 'voicemailDetectionEnabled': updateField('voicemailDetection.enabled', value); break;
+        case 'voicemailAction': updateField('voicemailDetection.action', value); break;
+        case 'voicemailMessage': updateField('voicemailDetection.message', value); break;
+        case 'noResponseTime': updateField('noResponseTimeoutMs', value * 1000); break;
+        case 'maxCallDuration': updateField('maxCallDurationMs', value * 60000); break;
+        case 'maxRingDuration': updateField('ringTimeOutMs', value * 1000); break;
+    }
+  };
+
+  const handlePostCallChange = (field: keyof PostCallAnalysisData, value: any) => {
+    switch(field) {
+        case 'extractionItems': updateField('postCallAnalysis.extractionItems', value); break;
+        case 'webhookEnabled': updateField('postCallAnalysis.webhookEnabled', value); break;
+        case 'webhookUrl': updateField('postCallAnalysis.webhookUrl', value); break;
+        case 'webhookTimeout': updateField('postCallAnalysis.webhookTimeout', value); break;
+    }
+  };
+
+  const handleFunctionChange = (field: keyof FunctionSettingsFormData, value: any) => {
+    const currentTools = [...agentData.reacherrLlmData.generalTools];
+
+    const updateOrAddTool = (toolType: string, newToolData: object) => {
+      const toolIndex = currentTools.findIndex(t => t.type === toolType);
+      if (toolIndex > -1) {
+        currentTools[toolIndex] = { ...currentTools[toolIndex], ...newToolData };
+      } else {
+        currentTools.push({ type: toolType, ...newToolData });
+      }
+      return currentTools;
+    };
+
+    const removeTool = (toolType: string) => {
+      return currentTools.filter(t => t.type !== toolType);
+    };
+
+    let newTools = currentTools;
+
+    switch(field) {
+      case 'transferEnabled':
+        if (value) {
+          const { transferDetails } = derivedFunctionData;
+          newTools = updateOrAddTool('transfer_call', {
+            name: transferDetails.name,
+            description: transferDetails.description,
+            transferDestination: transferDetails.phoneNumber,
+          });
+        } else {
+          newTools = removeTool('transfer_call');
+        }
+        break;
+
+      case 'transferDetails':
+        const { transferDetails } = value;
+        newTools = updateOrAddTool('transfer_call', {
+            name: transferDetails.name,
+            description: transferDetails.description,
+            transferDestination: transferDetails.phoneNumber,
+        });
+        break;
+
+      case 'smsEnabled':
+        if (value) {
+          const { smsDetails } = derivedFunctionData;
+          newTools = updateOrAddTool('send_sms', {
+            name: smsDetails.name,
+            description: smsDetails.description,
+            content: smsDetails.content,
+            smsType: smsDetails.smsType,
+          });
+        } else {
+          newTools = removeTool('send_sms');
+        }
+        break;
+
+      case 'smsDetails':
+        const { smsDetails } = value;
+        newTools = updateOrAddTool('send_sms', {
+            name: smsDetails.name,
+            description: smsDetails.description,
+            content: smsDetails.content,
+            smsType: smsDetails.smsType,
+        });
+        break;
+      
+      case 'bookingEnabled':
+        if (value) {
+          const { bookingDetails } = derivedFunctionData;
+          newTools = updateOrAddTool('book_appointment_cal', {
+            calApiKey: bookingDetails.calComApiKey,
+            eventTypeId: bookingDetails.eventTypeId,
+            timezone: bookingDetails.timezone,
+          });
+        } else {
+          newTools = removeTool('book_appointment_cal');
+        }
+        break;
+
+      case 'bookingDetails':
+        const { bookingDetails } = value;
+        newTools = updateOrAddTool('book_appointment_cal', {
+            calApiKey: bookingDetails.calComApiKey,
+            eventTypeId: bookingDetails.eventTypeId,
+            timezone: bookingDetails.timezone,
+        });
+        break;
+
+      case 'checkAvailabilityEnabled':
+        if (value) {
+          const { checkAvailabilityDetails } = derivedFunctionData;
+          newTools = updateOrAddTool('check_availability_cal', {
+            calApiKey: checkAvailabilityDetails.calComApiKey,
+            eventTypeId: checkAvailabilityDetails.eventTypeId,
+            timezone: checkAvailabilityDetails.timezone,
+          });
+        } else {
+          newTools = removeTool('check_availability_cal');
+        }
+        break;
+
+      case 'checkAvailabilityDetails':
+        const { checkAvailabilityDetails } = value;
+        newTools = updateOrAddTool('check_availability_cal', {
+            calApiKey: checkAvailabilityDetails.calComApiKey,
+            eventTypeId: checkAvailabilityDetails.eventTypeId,
+            timezone: checkAvailabilityDetails.timezone,
+        });
+        break;
+
+      case 'customFunctions':
+        const nonCustomTools = currentTools.filter((t: any) => t.type !== 'custom');
+        const newCustomTools = (value as CustomFunction[]).map(f => ({
+            type: 'custom',
+            name: f.name,
+            description: f.description,
+            url: f.endpointUrl,
+            method: f.method,
+            headers: f.headers.reduce((acc:any, h) => ({...acc, [h.key]: h.value}), {}),
+            timeoutMs: f.timeoutMs,
+            speakAfterExecution: f.speakAfterExecution,
+            speakDuringExecution: f.speakDuringExecution
+        }));
+        newTools = [...nonCustomTools, ...newCustomTools];
+        break;
+    }
+    
+    updateField('reacherrLlmData.generalTools', newTools);
+  };
+
+  // ---
 
   const handleSubmit = async () => {
     if (!auth?.user?.bId) return;
-
     setIsSaving(true);
     try {
-      // Logic for KnowledgeBase moved to LLMSettings, assuming no file upload for now as type changed
-      // If pendingKnowledgeBases was needed, it should be added back to LLMSettingsFormData in types
-      const updatedKnowledgeBase: S3MetaDto[] = []; // Placeholder as KB logic updated
-
-      const requestData: PostAgentRequest = {
-        businessId: auth.user.bId,
-        description: agentFormData.description,
-        knowledgeBase: updatedKnowledgeBase,
-        lang: audioSettingsData.language,
-        numberId: agentFormData.numberId || 0,
-        name: agentName,
-        voiceId: audioSettingsData.ttsVoiceId,
-      };
-
-      await postAgent(requestData);
+      // Construct payload from agentData
+      await postAgent(agentData); // Assuming API accepts this structure
       addToast('Agent created successfully!', 'success');
       navigate('/agents');
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Something went wrong while saving.';
-      addToast(msg, 'error');
+      addToast('Error saving agent', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -204,15 +397,23 @@ const CreateAgentPage: React.FC = () => {
   const renderTabContent = () => {
     if (isLoading) return <Skeleton className="h-full w-full rounded-3xl" />;
     switch (activeTab) {
-      case 'agent': return <AgentForm data={agentFormData} onChange={(f, v) => setAgentFormData(prev => ({...prev, [f]: v}))} />;
-      case 'llm': return <LLMSettingsForm data={llmData} onChange={(f, v) => setLlmData(prev => ({...prev, [f]: v}))} availableKBs={[]} />;
-      case 'audio-settings': return <AudioSettingsForm data={audioSettingsData} onChange={(f, v) => setAudioSettingsData(prev => ({...prev, [f]: v}))} onVoicePlay={togglePlay} />;
-      case 'call-settings': return <CallSettingsForm data={callSettingsData} onChange={(f, v) => setCallSettingsData(prev => ({...prev, [f]: v}))} />;
-      case 'post-call': return <PostCallAnalysisForm data={postCallData} onChange={(f, v) => setPostCallData(prev => ({...prev, [f]: v}))} />;
-      case 'functions': return <FunctionSettingsForm data={functionData} onChange={(f, v) => setFunctionData(prev => ({...prev, [f]: v}))} />;
+      case 'agent': return <AgentForm data={derivedAgentFormData} onChange={handleAgentFormChange} />;
+      case 'llm': return <LLMSettingsForm data={derivedLLMData} onChange={handleLLMChange} availableKBs={[]} />;
+      case 'audio-settings': return <AudioSettingsForm data={derivedAudioData} onChange={handleAudioChange}/>;
+      case 'call-settings': return <CallSettingsForm data={derivedCallSettings} onChange={handleCallSettingChange} />;
+      case 'post-call': return <PostCallAnalysisForm data={derivedPostCallData} onChange={handlePostCallChange} />;
+      case 'functions': return <FunctionSettingsForm data={derivedFunctionData} onChange={handleFunctionChange} />;
       default: return null;
     }
   };
+
+  // Cost segments calculation can also use agentData
+  const costSegments = useMemo(() => [
+    { label: `STT`, value: 20, displayValue: "$0.02", color: "bg-emerald-400" },
+    { label: `LLM`, value: 40, displayValue: "$0.04", color: "bg-orange-400" },
+    { label: `TTS`, value: 30, displayValue: "$0.03", color: "bg-blue-400" },
+    { label: "Platform", value: 10, displayValue: "$0.01", color: "bg-purple-400" },
+  ], []);
 
   return (
     <div className="h-screen bg-[#F9FAFB] p-4 lg:p-5 flex flex-col gap-4 overflow-hidden antialiased">
@@ -229,7 +430,8 @@ const CreateAgentPage: React.FC = () => {
               {isEditingName ? (
                 <div className="flex items-center gap-1.5">
                   <Input 
-                    value={agentName} onChange={(e) => setAgentName(e.target.value)}
+                    value={agentData.agentName} 
+                    onChange={(e) => updateField('agentName', e.target.value)}
                     className="h-8 text-sm font-bold bg-zinc-50 border-zinc-200"
                     onBlur={() => setIsEditingName(false)} autoFocus
                   />
@@ -237,7 +439,7 @@ const CreateAgentPage: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  <h1 className="text-base font-bold text-zinc-900 tracking-tight">{agentName}</h1>
+                  <h1 className="text-base font-bold text-zinc-900 tracking-tight">{agentData.agentName}</h1>
                   <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100" onClick={() => setIsEditingName(true)}>
                     <Edit2 size={12} className="text-zinc-400" />
                   </Button>
@@ -252,12 +454,10 @@ const CreateAgentPage: React.FC = () => {
           </div>
         </div>
 
-        {/* DYNAMIC METRICS */}
         <div className="hidden xl:flex items-center gap-4">
           <SegmentedMetric title="Cost Estimate" total="$0.10" unit="/min" segments={costSegments} />
         </div>
 
-        {/* TEST & ACTIONS */}
         <div className="flex items-center gap-3">
           <div className="flex items-center bg-zinc-50 p-1 rounded-xl border border-zinc-100 mr-2">
             <Button variant="ghost" size="sm" className="h-9 px-4 text-xs font-bold gap-2 hover:bg-white hover:shadow-sm">

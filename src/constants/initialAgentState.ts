@@ -31,7 +31,9 @@ export const INITIAL_AGENT_STATE = {
       "voiceId": "cartesia-Adam",
       "displayName": "Adam",
       "provider": "cartesia",
-      "gender": "Male"
+      "gender": "Male",
+      "accent": "American",
+      "previewUrl": "https://api.cartesia.ai/voices/cartesia-Adam/preview"
     }
   },
 
