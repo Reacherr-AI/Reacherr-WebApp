@@ -106,6 +106,7 @@ export interface LLMSettingsFormData {
   model: string;
   maxTokens: number;
   temperature: number;
+  topK: number;
   knowledgeBase: KnowledgeBaseDto[];
 }
 
@@ -113,6 +114,7 @@ export interface LLMSettingsFormProps {
   data: LLMSettingsFormData;
   onChange: (field: keyof LLMSettingsFormData, value: any) => void;
   availableKBs: KnowledgeBaseDto[];
+  capabilities: null;
 }
 
 // ==========================================
@@ -155,7 +157,7 @@ export interface AudioSettingsFormData {
 export interface AudioSettingsFormProps {
   data: AudioSettingsFormData;
   onChange: (name: keyof AudioSettingsFormData, value: any) => void;
-  onVoicePlay?: (voiceId: string) => void;
+  capabilities: null;
 }
 
 // ==========================================

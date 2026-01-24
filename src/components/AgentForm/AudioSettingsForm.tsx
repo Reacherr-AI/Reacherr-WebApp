@@ -1,154 +1,16 @@
 import React, { useMemo, useEffect } from 'react';
 import { Play, Mic2, Volume2, Settings2, Pause } from 'lucide-react';
 import { AudioSettingsFormProps } from './AgentForm.types';
-import { Slider } from '@/components/ui/slider';
-import { Input } from '@/components/ui/input';
+import { Slider } from '@/ui/slider';
+import { Input } from '@/ui/input';
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from '@/components/ui/select';
-import { Label } from '../ui/label';
-import { Button } from '../ui/button';
-import { useAudioPlayer } from '../hooks/useAudioPlayer';
+} from '@/ui/select';
+import { Label } from '@/ui/label';
+import { Button } from '@/ui/button';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { cn } from '@/lib/utils';
-
-const VOICE_CONFIG = {
-  "languages": [
-    { "code": "en", "name": "English" },
-    { "code": "hi", "name": "Hindi (हिंदी)" },
-    { "code": "gu", "name": "Gujarati (ગુજરાતી)" },
-    { "code": "ta", "name": "Tamil (தமிழ்)" },
-    { "code": "te", "name": "Telugu (తెలుగు)" },
-    { "code": "kn", "name": "Kannada (ಕನ್ನಡ)" },
-    { "code": "ml", "name": "Malayalam (മലയാളം)" },
-    { "code": "bn", "name": "Bengali (বাংলা)" },
-    { "code": "mr", "name": "Marathi (मराठी)" },
-    { "code": "pa", "name": "Punjabi (ਪੰਜਾਬੀ)" },
-    { "code": "fr", "name": "French" },
-    { "code": "es", "name": "Spanish" },
-    { "code": "de", "name": "German" },
-    { "code": "ja", "name": "Japanese" },
-    { "code": "zh", "name": "Chinese (Mandarin)" },
-    { "code": "ar", "name": "Arabic" }
-  ],
-  "providers": [
-    {
-      "name": "Deepgram",
-      "slug": "deepgram",
-      "type": "STT",
-      "models": [
-        {
-          "name": "nova-3",
-          "displayName": "Nova-3 (Latest)",
-          "modality": "STT",
-          "languages": ["en","es","fr","de","it","pt","nl","ru","zh","ja","ko","hi","ta","te","ar","tr","pl","sv","cs"],
-          "supportsKeywords": true,
-          "capabilities": { "keywords": true }
-        },
-        {
-          "name": "nova-2",
-          "displayName": "Nova-2",
-          "modality": "STT",
-          "languages": ["en","es","fr","de","it","pt","nl","ru","zh","ja","ko","hi","ar","tr","pl"],
-          "supportsKeywords": true,
-          "capabilities": { "keywords": true }
-        }
-      ]
-    },
-    {
-      "name": "ElevenLabs",
-      "slug": "elevenlabs",
-      "type": "TTS",
-      "models": [
-        {
-          "name": "eleven_turbo_v2_5",
-          "displayName": "Turbo v2.5 (Fastest)",
-          "modality": "TTS",
-          "languages": ["en","hi","es","fr","de","it","pt","pl","ru","zh","ja","ko","ar","tr","nl","sv","fi","da","no","cs","ro","hu","el","he","id","ms","th","ta","te","bn"],
-          "capabilities": { "speed": true, "stability": true, "similarity_boost": true, "style_exaggeration": true },
-          "voices": [
-            { "voiceId": "EXAVITQu4vr4xnSDxMaL", "displayName": "Rachel", "gender": "Female", "accent": "Neutral American" },
-            { "voiceId": "21m00Tcm4TlvDq8ikWAM", "displayName": "Adam", "gender": "Male", "accent": "Neutral American" },
-            { "voiceId": "pNInz6obpgDQGcFmaJgB", "displayName": "Antoni", "gender": "Male", "accent": "Warm American" },
-            { "voiceId": "z9fFv2dW1uY9Z9b9Z9b9", "displayName": "Ananya", "gender": "Female", "accent": "Indian English/Hindi" },
-            { "voiceId": "y5fFv2dW1uY9Z9b9Z9c1", "displayName": "Raj", "gender": "Male", "accent": "Indian English/Hindi" }
-          ]
-        },
-        {
-          "name": "eleven_multilingual_v2",
-          "displayName": "Multilingual v2 (Highest Quality)",
-          "modality": "TTS",
-          "languages": ["en","hi","es","fr","de","it","pt","pl","ru","zh","ja","ko","ar","tr","nl","sv","fi","da","no","cs","ro","hu"],
-          "capabilities": { "stability": true, "similarity_boost": true, "style_exaggeration": true }
-        }
-      ]
-    },
-    {
-      "name": "Sarvam",
-      "slug": "sarvam",
-      "type": "both",
-      "models": [
-        {
-          "name": "saarika-v2",
-          "displayName": "Saarika v2",
-          "modality": "STT",
-          "languages": ["hi","en","ta","te","kn","ml","gu","mr","pa","bn","or","as"],
-          "supportsKeywords": true,
-          "capabilities": { "keywords": true }
-        },
-        {
-          "name": "bulbul-v2",
-          "displayName": "Bulbul v2",
-          "modality": "TTS",
-          "languages": ["hi","ta","te","kn","ml","gu","mr","pa","bn"],
-          "capabilities": { "speed": true, "volume": true, "temperature": true },
-          "voices": [
-            { "voiceId": "meghna", "displayName": "Meghna", "gender": "Female" },
-            { "voiceId": "arjun", "displayName": "Arjun", "gender": "Male" },
-            { "voiceId": "anushka", "displayName": "Anushka", "gender": "Female" },
-            { "voiceId": "umang", "displayName": "Umang", "gender": "Male" }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Cartesia",
-      "slug": "cartesia",
-      "type": "TTS",
-      "models": [
-        {
-          "name": "sonic-multilingual",
-          "displayName": "Sonic Multilingual",
-          "modality": "TTS",
-          "languages": ["en","fr","es","de","pt","it","hi","ja","zh"],
-          "capabilities": { "speed": true, "temperature": true, "emotion": true },
-          "voices": [
-            { "voiceId": "aura", "displayName": "Aura", "gender": "Female" },
-            { "voiceId": "orion", "displayName": "Orion", "gender": "Male" }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Google Cloud",
-      "slug": "google",
-      "type": "TTS",
-      "models": [
-        {
-          "name": "chirp-3-hd",
-          "displayName": "Chirp 3 HD (Conversational)",
-          "modality": "TTS",
-          "languages": ["en","hi","gu","ta","te","kn","ml","bn","mr","pa","fr","es","de","ja","zh","ar","ru","pt","it"],
-          "capabilities": { "speaking_rate": true, "pitch": true, "volume_gain_db": true },
-          "voices": [
-            { "voiceId": "en-US-Chirp3-HD-A", "displayName": "Zephyr (US)", "gender": "Male" },
-            { "voiceId": "hi-IN-Neural2-A", "displayName": "Aarav (Hindi)", "gender": "Male" },
-            { "voiceId": "gu-IN-Wavenet-A", "displayName": "Dhruvi (Gujarati)", "gender": "Female" }
-          ]
-        }
-      ]
-    }
-  ]
-};
+import { getAgentConversationData } from '@/api/client';
 
 const formatLabel = (str: string) => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
 
@@ -161,57 +23,65 @@ const formatVoiceMetadata = (voice: any) => {
   return parts.join(' • ');
 };
 
-const AudioSettingsForm: React.FC<AudioSettingsFormProps> = ({ data, onChange }) => {
+const AudioSettingsForm: React.FC<AudioSettingsFormProps> = ({ data, onChange, capabilities }) => {
 
   const { playing, playingId, isLoading, togglePlay } = useAudioPlayer();
 
   // 1. DYNAMIC FILTERING LOGIC
   const filteredSTTProviders = useMemo(() => 
-    VOICE_CONFIG.providers.filter(p => (p.type === 'STT' || p.type === 'both') && 
+    capabilities?.providers.filter(p => 
       p.models.some(m => m.modality === 'STT' && m.languages.includes(data.language))), 
-  [data.language]);
+  [data.language, capabilities]);
 
   const filteredTTSProviders = useMemo(() => 
-    VOICE_CONFIG.providers.filter(p => (p.type === 'TTS' || p.type === 'both') && 
+    capabilities?.providers.filter(p => 
       p.models.some(m => m.modality === 'TTS' && m.languages.includes(data.language))), 
-  [data.language]);
+  [data.language, capabilities]);
 
   const currentSTTModels = useMemo(() => {
-    const provider = VOICE_CONFIG.providers.find(p => p.slug === data.sttProvider);
+    const provider = capabilities?.providers.find(p => p.slug === data.sttProvider);
     return provider?.models.filter(m => m.modality === 'STT' && m.languages.includes(data.language)) || [];
-  }, [data.sttProvider, data.language]);
+  }, [data.sttProvider, data.language, capabilities]);
 
   const currentTTSModels = useMemo(() => {
-    const provider = VOICE_CONFIG.providers.find(p => p.slug === data.ttsProvider);
+    const provider = capabilities?.providers.find(p => p.slug === data.ttsProvider);
     return provider?.models.filter(m => m.modality === 'TTS' && m.languages.includes(data.language)) || [];
-  }, [data.ttsProvider, data.language]);
+  }, [data.ttsProvider, data.language, capabilities]);
 
-  const activeTTSModel = useMemo(() => currentTTSModels.find(m => m.name === data.ttsModel), [data.ttsModel, currentTTSModels]);
+  // Find active models based on current selections
+  const activeTTSModel = useMemo(() => 
+    currentTTSModels.find(m => m.name === data.ttsModel), 
+  [data.ttsModel, currentTTSModels]);
 
-  const selectedVoiceObj = useMemo(()=>{
-    return activeTTSModel?.voices?.find(v => v.voiceId === data.ttsVoiceId); 
-  },[activeTTSModel, data.ttsVoiceId])
+  // Fix: Your API uses 'TTSVoices' instead of 'voices'
+  const selectedVoiceObj = useMemo(() => {
+    return activeTTSModel?.TTSVoices?.find(v => v.voiceId === data.ttsVoiceId); 
+  }, [activeTTSModel, data.ttsVoiceId]);
 
   const isCurrentVoicePlaying = playing && playingId === data.ttsVoiceId;
   const isCurrentVoiceLoading = isLoading && playingId === data.ttsVoiceId;
 
-  // 2. CASCADING DEFAULTS
+  // 2. CASCADING DEFAULTS - Ensures models refresh when provider changes
   useEffect(() => {
     if (!filteredSTTProviders.some(p => p.slug === data.sttProvider) && filteredSTTProviders.length > 0) 
       onChange('sttProvider', filteredSTTProviders[0].slug);
+    
     if (!filteredTTSProviders.some(p => p.slug === data.ttsProvider) && filteredTTSProviders.length > 0) 
       onChange('ttsProvider', filteredTTSProviders[0].slug);
   }, [data.language, filteredSTTProviders, filteredTTSProviders]);
 
   useEffect(() => {
-    if (!currentSTTModels.some(m => m.name === data.sttModel) && currentSTTModels.length > 0) 
+    // When currentSTTModels change (because of provider change), select the first one if current is invalid
+    if (!currentSTTModels.some(m => m.name === data.sttModel) && currentSTTModels.length > 0) {
       onChange('sttModel', currentSTTModels[0].name);
-  }, [data.sttProvider, currentSTTModels]);
+    }
+  }, [currentSTTModels]);
 
   useEffect(() => {
-    if (!currentTTSModels.some(m => m.name === data.ttsModel) && currentTTSModels.length > 0) 
+    if (!currentTTSModels.some(m => m.name === data.ttsModel) && currentTTSModels.length > 0) {
       onChange('ttsModel', currentTTSModels[0].name);
-  }, [data.ttsProvider, currentTTSModels]);
+    }
+  }, [currentTTSModels]);
 
   const SectionHeader = ({ icon: Icon, title }: { icon: any, title: string }) => (
     <div className="flex items-center gap-2.5 mb-6">
@@ -252,7 +122,9 @@ const AudioSettingsForm: React.FC<AudioSettingsFormProps> = ({ data, onChange })
               <Select value={data.language} onValueChange={(v) => onChange('language', v)}>
                 <SelectTrigger className="h-11 border-zinc-200"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {VOICE_CONFIG.languages.map(l => <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>)}
+                  {capabilities?.languages.map(l => (
+                    <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -266,7 +138,9 @@ const AudioSettingsForm: React.FC<AudioSettingsFormProps> = ({ data, onChange })
                 <Select value={data.sttProvider} onValueChange={(v) => onChange('sttProvider', v)}>
                   <SelectTrigger className="h-10 border-zinc-200"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {filteredSTTProviders.map(p => <SelectItem key={p.slug} value={p.slug}>{p.name}</SelectItem>)}
+                    {filteredSTTProviders.map(p => (
+                      <SelectItem key={p.slug} value={p.slug}>{p.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -275,7 +149,9 @@ const AudioSettingsForm: React.FC<AudioSettingsFormProps> = ({ data, onChange })
                 <Select value={data.sttModel} onValueChange={(v) => onChange('sttModel', v)}>
                   <SelectTrigger className="h-10 border-zinc-200"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {currentSTTModels.map(m => <SelectItem key={m.name} value={m.name}>{m.displayName}</SelectItem>)}
+                    {currentSTTModels.map(m => (
+                      <SelectItem key={m.name} value={m.name}>{m.displayName}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -318,7 +194,7 @@ const AudioSettingsForm: React.FC<AudioSettingsFormProps> = ({ data, onChange })
                 <Select value={data.ttsVoiceId} onValueChange={(v) => onChange('ttsVoiceId', v)}>
                   <SelectTrigger className="h-11 pl-10 border-zinc-200 shadow-sm"><SelectValue placeholder="Select Voice" /></SelectTrigger>
                   <SelectContent>
-                    {activeTTSModel?.voices?.map((v: any) => {
+                    {activeTTSModel?.TTSVoices?.map((v: any) => {
                       const metadata = formatVoiceMetadata(v);
                       return (
                         <SelectItem key={v.voiceId} value={v.voiceId}>
@@ -368,7 +244,7 @@ const AudioSettingsForm: React.FC<AudioSettingsFormProps> = ({ data, onChange })
             {activeTTSModel && (
               <div className="grid grid-cols-2 gap-3 pt-6 border-t border-zinc-100">
                 {(() => {
-                  const caps = activeTTSModel.capabilities as any;
+                  const caps = activeTTSModel.configs as any;
                   return (
                     <>
                       {(caps.speed || caps.speaking_rate) && <SliderField label="Speech Rate" value={data.speed} field="speed" min={0.5} max={2.0} step={0.05} suffix="x" />}

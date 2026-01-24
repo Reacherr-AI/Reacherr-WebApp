@@ -5,13 +5,13 @@ export const INITIAL_AGENT_STATE = {
   "language": "en-US",
   "webhookUrl": "https://www.callie.in/webhooks/call-events",
   
-  "maxCallDurationMs": 600000,
-  "ringTimeOutMs": 30000,
-  "noResponseTimeoutMs": 10000,
+  "maxCallDurationMs": 600,
+  "ringTimeOutMs": 3000,
+  "noResponseTimeoutMs": 30,
   "ivrhangup":true,
   "reEngageAttempts": 3,
   "reEngageMessage": "I'm sorry, I didn't catch that. Are you still there?",
-  "waitDurationMs": 1000,
+  "waitDurationMs": 30,
   "userGreetingType": "static",
 
   "ttsConfig": {
@@ -27,14 +27,6 @@ export const INITIAL_AGENT_STATE = {
       "styleExaggeration": 0.0,
       "pitch": 0.0
     },
-    "voice": {
-      "voiceId": "cartesia-Adam",
-      "displayName": "Adam",
-      "provider": "cartesia",
-      "gender": "Male",
-      "accent": "American",
-      "previewUrl": "https://api.cartesia.ai/voices/cartesia-Adam/preview"
-    }
   },
 
   "sttConfig": {
@@ -44,21 +36,16 @@ export const INITIAL_AGENT_STATE = {
       "keywords": ["Solar", "Energy", "Inverter", "Tax Credit"]
     }
   },
-    "responseEngine": {
-        "type": "single-prompt",
-        "llmId": "llm_933789968146b9a3276104234dc0",
-        "version": 4
-    },
     
   "reacherrLlmData": {
-    "llmId": "llm_933789968146b9a3276104234dc0",
     "provider": "azure",
     "model": "gpt-4o",
     "maxTokens": 450,
     "temperature": 0.2,
+    "topK": 40,
     "generalPrompt": "You are a helpful solar energy consultant for Callie.in. Your goal is to qualify leads and book appointments.",
     "beginMessage": "Hello! I'm calling from Callie's solar division. How are you doing today?",
-    "startSpeaker": "agent",
+    "startSpeaker": "ai",
     "modelHighPriority": true,
     "toolCallStrictMode": true,
     
@@ -145,7 +132,5 @@ export const INITIAL_AGENT_STATE = {
     "versionDescription": "Initial agent configuration for testing purposes.",
     "isPublished": false,
     "lastModificationTimestamp": 1700000000000,
-    "inboundPhoneNumberEnabled": false,
-    "outboundPhoneNumberEnabled": false
   }
 }

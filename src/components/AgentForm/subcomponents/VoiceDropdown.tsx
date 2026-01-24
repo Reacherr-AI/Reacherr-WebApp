@@ -2,7 +2,7 @@
 import React from 'react';
 import { Volume2, Pause, Play } from 'lucide-react';
 import { VoiceDto } from '../AgentForm.types';
-import { useAudioPlayer } from '../../hooks/useAudioPlayer';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 
 interface VoiceDropdownProps {
   voices: VoiceDto[];
@@ -32,7 +32,7 @@ const VoiceDropdown: React.FC<VoiceDropdownProps> = ({ voices, selectedVoice, on
         >
           {voices.map((voice) => (
             <option key={voice.voiceId} value={voice.voiceId} className="bg-gray-800/60 text-gray-100">
-              {voice.speaker}
+              {voice.speakerName}
             </option>
           ))}
         </select>

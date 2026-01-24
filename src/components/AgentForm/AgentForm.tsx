@@ -7,14 +7,14 @@ import {
   Clock
 } from 'lucide-react';
 import { AgentFormProps } from './AgentForm.types';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/ui/button';
+import { Slider } from '@/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/select';
+import { Input } from '@/ui/input';
 import { cn } from '@/lib/utils';
 import TextareaField from './subcomponents/TextareaField';
-import { Label } from '../ui/label';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/Tooltip';
+import { Label } from '@/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/ui/Tooltip';
 
 const AgentForm: React.FC<AgentFormProps> = ({
   data, onChange

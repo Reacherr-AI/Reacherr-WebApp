@@ -1,4 +1,4 @@
-import React, { useContext, useState, useMemo, useReducer, useCallback } from 'react';
+import React, { useContext, useState, useMemo, useReducer, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, User, Settings2, BrainCircuit, 
@@ -6,9 +6,9 @@ import {
   MessageCircle, Zap, Check
 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/ui/button';
+import { Skeleton } from '@/ui/skeleton';
+import { Input } from '@/ui/input';
 import { cn } from '@/lib/utils';
 
 // Shared Components
@@ -26,15 +26,15 @@ import { agentReducer } from '@/reducers/agentReducer';
 import { INITIAL_AGENT_STATE } from '@/constants/initialAgentState';
 
 // API and Contexts
-import {postAgent } from '../api/client';
+import {getAgentConversationData, postAgent } from '@/api/client';
 import { 
    AgentFormData, LLMSettingsFormData, 
-  AudioSettingsFormData, CallSettingsFormData, PostCallAnalysisData, FunctionSettingsFormData,,
+  AudioSettingsFormData, CallSettingsFormData, PostCallAnalysisData, FunctionSettingsFormData,
   CustomFunction
 } from '../components/AgentForm/AgentForm.types';
-import { useAudioPlayer } from '../components/hooks/useAudioPlayer';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import LaunchAgentModal from '@/components/AgentForm/subcomponents/LaunchAgentModal';
 
 const NAV_ITEMS = [
   { id: 'agent', label: 'Agent Identity', icon: User },
@@ -51,6 +51,8 @@ const CreateAgentPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
+  const [appCapabilities, setAppCapabilities] = useState<any>(null);
+  const [isLaunchModalOpen, setIsLaunchModalOpen] = useState(false);
 
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
@@ -59,6 +61,25 @@ const CreateAgentPage: React.FC = () => {
   // Helper to update global state via reducer
   const updateField = useCallback((path: string, value: any) => {
     dispatch({ type: 'UPDATE_FIELD', path, value });
+  }, []);
+
+  // Get llm config and voice config
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await getAgentConversationData();
+        setAppCapabilities(response.data);
+        // Console log to see the structure before mapping
+        console.log("SUCCESS: Fetched Capabilities Config:", response.data);
+      } catch (error) {
+        console.error("CORS or Network Error:", error);
+        addToast("Failed to connect to backend", "error");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const derivedAgentFormData: AgentFormData = useMemo(() => ({
@@ -77,6 +98,7 @@ const CreateAgentPage: React.FC = () => {
     maxTokens: agentData.reacherrLlmData.maxTokens || 450,
     temperature: agentData.reacherrLlmData.temperature || 0.2,
     knowledgeBaseItems: [],
+    topK: agentData.reacherrLlmData.topK || 40,
     knowledgeBase: agentData.reacherrLlmData.kbConfig.knowledgeBaseIds.map((id: string) => ({ id, name: id, type: 'pdf', status: 'ready' }))
   }), [agentData]);
 
@@ -119,7 +141,11 @@ const CreateAgentPage: React.FC = () => {
   }), [agentData]);
 
   const derivedPostCallData: PostCallAnalysisData = useMemo(() => ({
-    extractionItems: agentData.postCallAnalysis.extractionItems,
+    extractionItems: agentData.postCallAnalysis.extractionItems.map((item: any) => ({
+      ...item,
+      enabled: true,
+      isOptional: false,
+    })),
     webhookEnabled: agentData.postCallAnalysis.webhookEnabled,
     webhookUrl: agentData.postCallAnalysis.webhookUrl,
     webhookTimeout: agentData.postCallAnalysis.webhookTimeout,
@@ -197,6 +223,7 @@ const CreateAgentPage: React.FC = () => {
         case 'model': updateField('reacherrLlmData.model', value); break;
         case 'maxTokens': updateField('reacherrLlmData.maxTokens', value); break;
         case 'temperature': updateField('reacherrLlmData.temperature', value); break;
+        case 'topK': updateField('reacherrLlmData.topK', value); break;
         // Knowledge base mapping logic would go here
     }
   };
@@ -398,8 +425,8 @@ const CreateAgentPage: React.FC = () => {
     if (isLoading) return <Skeleton className="h-full w-full rounded-3xl" />;
     switch (activeTab) {
       case 'agent': return <AgentForm data={derivedAgentFormData} onChange={handleAgentFormChange} />;
-      case 'llm': return <LLMSettingsForm data={derivedLLMData} onChange={handleLLMChange} availableKBs={[]} />;
-      case 'audio-settings': return <AudioSettingsForm data={derivedAudioData} onChange={handleAudioChange}/>;
+      case 'llm': return <LLMSettingsForm data={derivedLLMData} onChange={handleLLMChange} availableKBs={[]} capabilities = {appCapabilities.llm} />;
+      case 'audio-settings': return <AudioSettingsForm data={derivedAudioData} onChange={handleAudioChange} capabilities={appCapabilities.voice} />;
       case 'call-settings': return <CallSettingsForm data={derivedCallSettings} onChange={handleCallSettingChange} />;
       case 'post-call': return <PostCallAnalysisForm data={derivedPostCallData} onChange={handlePostCallChange} />;
       case 'functions': return <FunctionSettingsForm data={derivedFunctionData} onChange={handleFunctionChange} />;
@@ -431,7 +458,7 @@ const CreateAgentPage: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <Input 
                     value={agentData.agentName} 
-                    onChange={(e) => updateField('agentName', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateField('agentName', e.target.value)}
                     className="h-8 text-sm font-bold bg-zinc-50 border-zinc-200"
                     onBlur={() => setIsEditingName(false)} autoFocus
                   />
@@ -469,13 +496,25 @@ const CreateAgentPage: React.FC = () => {
           </div>
           <Button 
             disabled={isSaving}
-            onClick={handleSubmit}
+            onClick={() => setIsLaunchModalOpen(true)}
             className="bg-zinc-900 hover:bg-zinc-800 text-white px-8 rounded-xl h-11 text-sm font-bold shadow-lg transition-all active:scale-95"
           >
             {isSaving ? 'Saving...' : 'Launch Agent'}
           </Button>
         </div>
       </header>
+
+      {isLaunchModalOpen && (
+        <LaunchAgentModal 
+          data={agentData.versionMetadata}
+          onClose={() => setIsLaunchModalOpen(false)}
+          onPublish={(finalData: any) => {
+            // Logic to hit your /agent/save or publish API
+            console.log(finalData)
+            handleSubmit();
+          }}
+        />
+      )}
 
       {/* WORKSPACE */}
       <div className="flex flex-1 gap-4 overflow-hidden w-full max-w-[1700px] mx-auto">

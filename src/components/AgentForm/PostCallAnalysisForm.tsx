@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
 import { 
-  FileText, CheckCircle2, UserCircle, Hash, 
-  ChevronDown, Plus, Trash2, Edit2, Webhook, Clock, 
-  Settings2
+  FileText, CheckCircle2, UserCircle, Hash, Plus, Trash2, Edit2, Webhook, Clock, 
 } from 'lucide-react';
 import { PostCallAnalysisFormProps, AnalysisExtractionItem } from './AgentForm.types';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Switch } from '@/ui/switch';
+import { Button } from '@/ui/button';
+import { Input } from '@/ui/input';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/ui/dropdown-menu";
 import { AnalysisItemModal } from './subcomponents/AnalysisItemModal';
 import { cn } from '@/lib/utils';
-import { Label } from '../ui/label';
-import { Slider } from '../ui/slider';
+import { Label } from '@/ui/label';
+import { Slider } from '@/ui/slider';
 
 const PostCallAnalysisForm: React.FC<PostCallAnalysisFormProps> = ({ data, onChange }) => {
   const [modalState, setModalState] = useState<{ open: boolean, type: string, item: any }>({ open: false, type: 'text', item: null });

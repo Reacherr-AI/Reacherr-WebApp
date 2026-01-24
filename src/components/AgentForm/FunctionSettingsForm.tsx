@@ -11,9 +11,9 @@ import {
   Settings2,
   Zap
 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/Tooltip";
+import { Switch } from '@/ui/switch';
+import { Button } from '@/ui/button';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/ui/Tooltip";
 import { FunctionSettingsFormProps, CustomFunction } from './AgentForm.types';
 import { CustomFunctionModal } from './subcomponents/CustomFunctionModal';
 import { TransferModal } from './subcomponents/TransferModal';

@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { S3MetaDto, VoiceDto } from '../types';
 import { globalLogout } from '../context/AuthContext';
+import { DashboardAnalyticsDto } from '@/types/dashboard';
 
-export const API_URL = import.meta.env.VITE_API_URL;
-export const GOOGLE_LOGIN_URL = `${API_URL}/oauth2/authorization/google`;
+export const API_URL = 'http://localhost:8080/';
+// export const GOOGLE_LOGIN_URL = `${API_URL}/oauth2/authorization/google`;
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -13,7 +14,7 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(config => {
-  const token = localStorage.getItem('authToken');
+  const token = "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlcyI6WyJST0xFX09XTkVSIl0sInN1YiI6InJhai4zMC4xMi4yazAxQGdtYWlsLmNvbSIsImlhdCI6MTc2OTI2ODIxMSwiZXhwIjoxNzY5MjY5MTExfQ.7in7d7Sg3OFtZxGbGJbZWudErjr-f6vKUHR5DeOocLXlEc0ZEKZ2a3r7VkBW2-Tx6x6W0VKrnkanQTYg3TOVtg"
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -31,21 +32,20 @@ apiClient.interceptors.response.use(
   }
 );
 
-export const getAllAgentsData = (businessId: number) => {
-  return apiClient.get(`/agent/${businessId}`);
-};
-
-export const getCallSettingsData = () => {
-  return apiClient.get(`/agent/callSettingsData/`);
+export const getAgentConversationData = () =>{
+  console.log('Fetching Agent Conversation Config Data for llm and Audio settings');
+  return apiClient.get(`/api/v1/conversation/config`);
 }
 
-export const getPhoneNumbers = (businessId: number): Promise<{ data: Record<number, string> }> => {
-  return apiClient.get(`/api/phone-numbers/subscribed`);
+export const getTemplates = (): Promise<{ data: Array<{ id: string, name: string, description: string }> }> => {
+  return apiClient.get('/api/v1/agent/templates');
 };
 
-export const getVoices = (): Promise<{ data: VoiceDto[] }> => {
-  return apiClient.get('/voice');
+export const getAllAgentsData = () => {
+  return apiClient.get(`/api/v1/agent/`);
 };
+
+
 
 export const postAgent = (data: {
   agentId?: number;

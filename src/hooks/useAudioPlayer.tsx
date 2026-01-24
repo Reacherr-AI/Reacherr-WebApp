@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import { getVoiceUrl } from '../../api/client';
-import { VoiceDto } from '../AgentForm';
+import { getVoiceUrl } from '@/api/client';
+import { VoiceDto } from '../components/AgentForm';
 
 interface AudioPlayerState {
   playing: boolean;

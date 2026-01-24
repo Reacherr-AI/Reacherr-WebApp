@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { FileText, UploadCloud } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/ui/dialog";
+import { Input } from "@/ui/input";
+import { Label } from "@/ui/label";
+import { Button } from "@/ui/button";
 import { KnowledgeItemUi } from '../AgentForm.types';
 
 interface UploadModalProps {

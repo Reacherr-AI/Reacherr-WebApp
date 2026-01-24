@@ -1,3 +1,5 @@
+export * from './dashboard';
+
 export interface AgentPerformanceDTO {
   agentId: number;
   agentName: string;

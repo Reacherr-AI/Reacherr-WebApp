@@ -1,13 +1,13 @@
 import React from 'react';
 import { CallSettingsFormProps } from './AgentForm.types';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/ui/slider';
+import { Switch } from '@/ui/switch';
+import { Label } from '@/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/ui/radio-group';
+import { Textarea } from '@/ui/textarea';
 import { cn } from '@/lib/utils';
 import { RefreshCcw, Voicemail, Timer, Info, PhoneOff } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/Tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui/Tooltip";
 
 const CallSettingsForm: React.FC<CallSettingsFormProps> = ({ data, onChange }) => {
   

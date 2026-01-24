@@ -1,0 +1,170 @@
+import React, { useState } from "react";
+import { Rocket, X } from "lucide-react";
+import { Button } from "@/ui/button";
+import { Input } from "@/ui/input";
+import { Textarea } from "@/ui/textarea";
+import { Checkbox } from "@/ui/checkbox";
+import { Label } from "@/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/ui/select";
+
+interface LaunchModalProps {
+  data: any;
+  phoneNumbers: Record<number, string>;
+  onClose: () => void;
+  onPublish: (payload: any) => void;
+}
+
+const LaunchAgentModal: React.FC<LaunchModalProps> = ({
+  data,
+  phoneNumbers,
+  onClose,
+  onPublish,
+}) => {
+  const [versionName, setVersionName] = useState(data.versionName || "V0");
+  const [description, setDescription] = useState("");
+  const [inboundEnabled, setInboundEnabled] = useState(false);
+  const [outboundEnabled, setOutboundEnabled] = useState(false);
+  const [selectedInbound, setSelectedInbound] = useState<string>("");
+  const [selectedOutbound, setSelectedOutbound] = useState<string>("");
+
+  const phoneOptions = [
+    { id: "phone-01", num: "+91 00000 00000" },
+    { id: "phone-02", num: "+91 99999 99999" },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm">
+      <div className="w-full max-w-[500px] bg-white rounded-[28px] border border-zinc-100 shadow-2xl">
+        
+        {/* HEADER */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-50">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-blue-50 rounded-lg">
+              <Rocket size={16} className="text-blue-600" />
+            </div>
+            <h2 className="text-base font-bold text-zinc-900">Launch Agent</h2>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X size={18} />
+          </Button>
+        </div>
+
+        {/* CONTENT */}
+        <div className="p-6 space-y-5">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Version Name</Label>
+              <Input
+                value={versionName}
+                onChange={(e) => setVersionName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* PHONE SELECTION */}
+          <div className="space-y-3">
+            <Label>Select Phone Number</Label>
+
+            {/* INBOUND */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={inboundEnabled}
+                  onCheckedChange={(v) => setInboundEnabled(!!v)}
+                />
+                <Label>Inbound phone number</Label>
+              </div>
+
+              {inboundEnabled && (
+                <Select value={selectedInbound} onValueChange={setSelectedInbound}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a phone number" />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    sideOffset={6}
+                    className="z-[999]"
+                  >
+                    {phoneOptions.map((opt) => (
+                      <SelectItem key={opt.id} value={opt.id}>
+                        {opt.num}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* OUTBOUND */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={outboundEnabled}
+                  onCheckedChange={(v) => setOutboundEnabled(!!v)}
+                />
+                <Label>Outbound phone number</Label>
+              </div>
+
+              {outboundEnabled && (
+                <Select value={selectedOutbound} onValueChange={setSelectedOutbound}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a phone number" />
+                  </SelectTrigger>
+
+                  <SelectContent
+                    position="popper"
+                    sideOffset={6}
+                    className="z-[999]"
+                  >
+                    {phoneOptions.map((opt) => (
+                      <SelectItem key={opt.id} value={opt.id}>
+                        {opt.num}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* FOOTER */}
+        <div className="px-6 py-4 bg-zinc-50 flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() =>
+              onPublish({
+                versionName,
+                description,
+                inboundEnabled,
+                selectedInbound,
+                outboundEnabled,
+                selectedOutbound,
+              })
+            }
+          >
+            Publish
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LaunchAgentModal;
