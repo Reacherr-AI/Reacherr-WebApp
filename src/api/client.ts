@@ -1,7 +1,6 @@
 import axios from 'axios';
-import { S3MetaDto, VoiceDto } from '../types';
 import { globalLogout } from '../context/AuthContext';
-import { DashboardAnalyticsDto } from '@/types/dashboard';
+import { S3MetaDto } from '../types';
 
 export const API_URL = 'http://localhost:8080/';
 // export const GOOGLE_LOGIN_URL = `${API_URL}/oauth2/authorization/google`;
@@ -14,7 +13,7 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(config => {
-  const token = "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlcyI6WyJST0xFX09XTkVSIl0sInN1YiI6InJhai4zMC4xMi4yazAxQGdtYWlsLmNvbSIsImlhdCI6MTc2OTI2ODIxMSwiZXhwIjoxNzY5MjY5MTExfQ.7in7d7Sg3OFtZxGbGJbZWudErjr-f6vKUHR5DeOocLXlEc0ZEKZ2a3r7VkBW2-Tx6x6W0VKrnkanQTYg3TOVtg"
+  const token = "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlcyI6WyJST0xFX09XTkVSIl0sInN1YiI6ImxpdmVraXR0ZXN0MTZAZ21haWwuY29tIiwiaWF0IjoxNzY5MzQwMDQ5LCJleHAiOjE3NjkzNDA5NDl9.Snm55p2G0JnvtUG8oAw_bsEgyzgWHcvwMqLCbiv1WivM8zEkcgScWtnuBboBspw6zD5EGLRsRRisF-CQ15BqgQ"
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
