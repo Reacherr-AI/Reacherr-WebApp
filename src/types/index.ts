@@ -95,3 +95,6 @@ export interface AgentResponseDto {
   userGreetingType: 'static' | 'dynamic';
   waitDuration?: number;
 }
+
+export * from './agentTemplate';
+

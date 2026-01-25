@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { globalLogout } from '../context/AuthContext';
-import { S3MetaDto } from '../types';
-
+import { S3MetaDto, Template } from '../types';
 export const API_URL = 'http://localhost:8080/';
 // export const GOOGLE_LOGIN_URL = `${API_URL}/oauth2/authorization/google`;
 
@@ -13,7 +12,7 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(config => {
-  const token = "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlcyI6WyJST0xFX09XTkVSIl0sInN1YiI6ImxpdmVraXR0ZXN0MTZAZ21haWwuY29tIiwiaWF0IjoxNzY5MzQwMDQ5LCJleHAiOjE3NjkzNDA5NDl9.Snm55p2G0JnvtUG8oAw_bsEgyzgWHcvwMqLCbiv1WivM8zEkcgScWtnuBboBspw6zD5EGLRsRRisF-CQ15BqgQ"
+  const token = "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlcyI6WyJST0xFX09XTkVSIl0sInN1YiI6ImxpdmVraXR0ZXN0MTZAZ21haWwuY29tIiwiaWF0IjoxNzY5MzY1NTg2LCJleHAiOjE3Njk5NzAzODZ9.PZghnRExUZhVT9g7LQh-Jrk8seQ359m2-rN51pW_ES-Jkn8SwE56KKJrUythU5uG6D2c4M34pmuBW_uvGcT00A"
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -36,12 +35,12 @@ export const getAgentConversationData = () =>{
   return apiClient.get(`/api/v1/conversation/config`);
 }
 
-export const getTemplates = (): Promise<{ data: Array<{ id: string, name: string, description: string }> }> => {
-  return apiClient.get('/api/v1/agent/templates');
+export const getTemplates = (): Promise<{ data: Template[] }> => {
+  return apiClient.get('/api/v1/templates');
 };
 
 export const getAllAgentsData = () => {
-  return apiClient.get(`/api/v1/agent/`);
+  return apiClient.get(`/api/v1/list-agent-dashboard`);
 };
 
 
