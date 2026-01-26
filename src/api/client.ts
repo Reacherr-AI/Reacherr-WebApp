@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { globalLogout } from '../context/AuthContext';
-import { S3Meta, Template, ReacherrLLM, VoiceAgent } from '../types';
+import { ReacherrLLM, S3Meta, Template, VoiceAgent } from '../types';
 export const API_URL = 'http://localhost:8080/';
 // export const GOOGLE_LOGIN_URL = `${API_URL}/oauth2/authorization/google`;
 
