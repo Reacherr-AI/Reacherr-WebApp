@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { globalLogout } from '../context/AuthContext';
-import { S3MetaDto, Template } from '../types';
+import { S3Meta, Template, ReacherrLLM, VoiceAgent } from '../types';
 export const API_URL = 'http://localhost:8080/';
 // export const GOOGLE_LOGIN_URL = `${API_URL}/oauth2/authorization/google`;
 
@@ -49,7 +49,7 @@ export const postAgent = (data: {
   agentId?: number;
   businessId: number;
   description: string;
-  knowledgeBase: S3MetaDto[];
+  knowledgeBase: S3Meta[];
   lang: string;
   numberId: number;
   name: string;
@@ -88,5 +88,21 @@ export const getVoiceUrl = (voiceId: string) => {
 export const getRecordingUrl = (recordingObjKey: string) => {
   return apiClient.get(`/storage/recording`, { params: { recordingObjKey } })
 }
+
+export const createAgentFromTemplate = (templateId: string) => {
+  return apiClient.post<{agentId: string, responseEngine: { llmId: string }} & Partial<VoiceAgent>>(`/api/v1/create-agent-from-template/${templateId}`);
+};
+
+export const getReacherrLlm = (llmId: string) => {
+  return apiClient.get<ReacherrLLM>(`/api/v1/get-reacherr-llm/${llmId}`);
+};
+
+export const createReacherrLlm = (data: Partial<ReacherrLLM>) => {
+  return apiClient.post<ReacherrLLM>(`/api/v1/create-reacherr-llm`, data);
+};
+
+export const createVoiceAgent = (data: Partial<VoiceAgent>) => {
+  return apiClient.post<VoiceAgent>(`/api/v1/create-voice-agent`, data);
+};
 
 export default apiClient;
