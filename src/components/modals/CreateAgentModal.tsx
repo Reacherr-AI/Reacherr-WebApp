@@ -1,24 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Dialog, DialogContent, DialogTitle
-} from '@/ui/dialog';
-import { Button } from '@/ui/button';
-import { 
-  MessageSquare, Waypoints, LayoutGrid, X, 
-  Sparkles 
-} from 'lucide-react';
 import { getTemplates } from '@/api/client';
 import { cn } from '@/lib/utils';
+import { Button } from '@/ui/button';
+import {
+  Dialog, DialogContent, DialogTitle
+} from '@/ui/dialog';
+import {
+  LayoutGrid,
+  MessageSquare,
+  Sparkles,
+  Waypoints,
+  X
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Template, TemplateType } from '../../types/agentTemplate';
 
-interface Template {
-  id: string;
-  name: string;
-  description: string;
-}
 
 const CreateAgentModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
-  const [architecture, setArchitecture] = useState<'single-prompt' | 'conversational'>('single-prompt');
+  const [architecture, setArchitecture] = useState<TemplateType>('single-prompt');
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('blank');
   const navigate = useNavigate();
@@ -70,7 +69,7 @@ const CreateAgentModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
             <div className="grid grid-cols-2 gap-4">
               {[
                 { id: 'single-prompt', title: 'Single Prompt', desc: 'Instruction-driven LLM execution for simple tasks.', icon: MessageSquare },
-                { id: 'conversational', title: 'Conversational Flow', desc: 'Node-based logic for complex flows.', icon: Waypoints }
+                { id: 'conversational-flow', title: 'Conversational Flow', desc: 'Node-based logic for complex flows.', icon: Waypoints }
               ].map((type) => (
                 <button
                   key={type.id}
@@ -121,6 +120,7 @@ const CreateAgentModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
 
               {/* Dynamic Templates from API */}
               {templates.map((template) => (
+                template.templateType == architecture ? 
                 <button
                   key={template.id}
                   onClick={() => setSelectedTemplateId(template.id)}
@@ -135,7 +135,7 @@ const CreateAgentModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
                     <h5 className={cn("text-sm font-bold transition-colors", selectedTemplateId === template.id ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500")}>{template.name}</h5>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 mt-1 leading-snug">{template.description}</p>
                   </div>
-                </button>
+                </button> : <></>
               ))}
             </div>
           </section>

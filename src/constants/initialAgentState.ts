@@ -1,29 +1,29 @@
 export const INITIAL_AGENT_STATE = {
-  "agentId": "624af907-6970-4988-abd2-2fab2228eea9",
-  "agentName": "Solar Sales Associate",
+  "agentId": "",
+  "agentName": "",
   "channel": "voice",
   "language": "en-US",
-  "webhookUrl": "https://www.callie.in/webhooks/call-events",
+  "webhookUrl": "",
   
-  "maxCallDurationMs": 600,
-  "ringTimeOutMs": 3000,
-  "noResponseTimeoutMs": 30,
-  "ivrhangup":true,
+  "maxCallDurationMs": 600000, // 10 minutes default
+  "ringTimeOutMs": 30000,
+  "noResponseTimeoutMs": 15000,
+  "ivrhangup": true,
   "reEngageAttempts": 3,
   "reEngageMessage": "I'm sorry, I didn't catch that. Are you still there?",
-  "waitDurationMs": 30,
+  "waitDurationMs": 1000, // 1 second default
   "userGreetingType": "static",
 
   "ttsConfig": {
     "provider": "cartesia",
     "model": "sonic-english",
-    "voiceId": "cartesia-Adam",
+    "voiceId": "", // Removed specific voice ID
     "settings": {
       "voiceTemperature": 0.5,
-      "voiceSpeed": 1.1,
+      "voiceSpeed": 1.0,
       "volume": 1.0,
-      "stability": 0.75,
-      "similarityBoost": 0.75,
+      "stability": 0.5,
+      "similarityBoost": 0.5,
       "styleExaggeration": 0.0,
       "pitch": 0.0
     },
@@ -33,7 +33,7 @@ export const INITIAL_AGENT_STATE = {
     "provider": "deepgram",
     "model": "nova-2",
     "settings": {
-      "keywords": ["Solar", "Energy", "Inverter", "Tax Credit"]
+      "keywords": []
     }
   },
     
@@ -43,8 +43,8 @@ export const INITIAL_AGENT_STATE = {
     "maxTokens": 450,
     "temperature": 0.2,
     "topK": 40,
-    "generalPrompt": "You are a helpful solar energy consultant for Callie.in. Your goal is to qualify leads and book appointments.",
-    "beginMessage": "Hello! I'm calling from Callie's solar division. How are you doing today?",
+    "generalPrompt": "",
+    "beginMessage": "",
     "startSpeaker": "ai",
     "modelHighPriority": true,
     "toolCallStrictMode": true,
@@ -55,69 +55,14 @@ export const INITIAL_AGENT_STATE = {
       "filterScore": 0.6
     },
 
-    "generalTools": [
-      {
-        "type": "end_call",
-        "name": "end_call",
-        "description": "End the call gracefully."
-      },
-      {
-        "type": "transfer_call",
-        "name": "transfer_to_human",
-        "description": "Transfer to a human specialist.",
-        "transferDestination": "+18563630633",
-        "transferOption": {
-          "type": "warm_transfer",
-          "enableBridgeAudioCue": true,
-          "showTransfereeAsCaller": true
-        }
-      },
-      {
-        "type": "book_appointment_cal",
-        "name": "book_calendar",
-        "eventTypeId": 123,
-        "calApiKey": "cal_live_xxxx",
-        "timezone": "America/Los_Angeles",
-        "requiredFields": ["name", "email"]
-      },
-      {
-        "type": "custom",
-        "name": "callie_webhook",
-        "description": "Ping external server",
-        "url": "https://www.callie.in",
-        "method": "POST",
-        "headers": {
-            "auth": "bearer_token_123"
-        },
-        "queryParams": {},
-        "parameterType": "json",
-        "speakAfterExecution": true,
-        "speakDuringExecution": false,
-        "argsAtRoot": false,
-        "timeoutMs": 5000,
-        "responseVariables": {}
-    },
-    ]
+    "generalTools": []
   },
 
   "postCallAnalysis": {
-    "webhookEnabled": true,
-    "webhookUrl": "https://www.callie.in/webhooks/analysis",
+    "webhookEnabled": false,
+    "webhookUrl": "",
     "webhookTimeout": 45,
-    "extractionItems": [
-      {
-        "id": "summary",
-        "name": "Call Summary",
-        "type": "text",
-        "description": "Summarize the call in 2 sentences."
-      },
-      {
-        "id": "ai_experience",
-        "name": "User Satisfaction",
-        "type": "selector",
-        "options": ["satisfied", "unsatisfied"]
-      }
-    ]
+    "extractionItems": []
   },
   
   "voicemailDetection": {
@@ -128,9 +73,9 @@ export const INITIAL_AGENT_STATE = {
 
   "versionMetadata": {
     "version": 1,
-    "versionName": "V0 - Initial Setup",
-    "versionDescription": "Initial agent configuration for testing purposes.",
+    "versionName": "V0",
+    "versionDescription": "",
     "isPublished": false,
-    "lastModificationTimestamp": 1700000000000,
+    "lastModificationTimestamp": 0,
   }
 }

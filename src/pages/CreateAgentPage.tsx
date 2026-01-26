@@ -1,5 +1,5 @@
 import React, { useContext, useState, useMemo, useReducer, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ChevronLeft, User, Settings2, BrainCircuit, 
   Variable, BarChart4, Cpu, Edit2, Phone, 
@@ -26,12 +26,17 @@ import { agentReducer } from '@/reducers/agentReducer';
 import { INITIAL_AGENT_STATE } from '@/constants/initialAgentState';
 
 // API and Contexts
-import {getAgentConversationData, postAgent } from '@/api/client';
+import {
+  getAgentConversationData, postAgent,
+  createAgentFromTemplate, getReacherrLlm, 
+  createReacherrLlm, createVoiceAgent 
+} from '@/api/client';
 import { 
    AgentFormData, LLMSettingsFormData, 
   AudioSettingsFormData, CallSettingsFormData, PostCallAnalysisData, FunctionSettingsFormData,
   CustomFunction
 } from '../components/AgentForm/AgentForm.types';
+import { ReacherrLLM, VoiceAgent, Tool, ReacherrLLMRefDto } from '@/types';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import LaunchAgentModal from '@/components/AgentForm/subcomponents/LaunchAgentModal';
@@ -55,6 +60,7 @@ const CreateAgentPage: React.FC = () => {
   const [isLaunchModalOpen, setIsLaunchModalOpen] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = useContext(AuthContext);
   const { addToast } = useToast();
 
@@ -62,6 +68,104 @@ const CreateAgentPage: React.FC = () => {
   const updateField = useCallback((path: string, value: any) => {
     dispatch({ type: 'UPDATE_FIELD', path, value });
   }, []);
+
+  // Handle Template Initialization
+  useEffect(() => {
+    const initAgent = async () => {
+      if (location.state?.templateId) {
+        const { templateId } = location.state;
+        
+        try {
+          setIsLoading(true);
+
+          if (templateId === 'blank') {
+            // --- BLANK FLOW ---
+            const llmPayload: Partial<ReacherrLLM> = {
+              beginMessage: "",
+              generalTools: [
+                {
+                  type: "end_call",
+                  name: "end_call",
+                  description: "End the call when user has to leave (like says bye) or you are instructed to do so."
+                } as Tool
+              ],
+              toolCallStrictMode: false
+            };
+            
+            // 1. Create LLM
+            const llmRes = await createReacherrLlm(llmPayload);
+            const llmId = llmRes.data.llmId;
+
+            // 2. Create Voice Agent
+            const agentPayload: Partial<VoiceAgent> = {
+              agentName: "Single-Prompt Agent",
+              responseEngine: {
+                type: "REACHERR_LLM",
+                llmId: llmId,
+                version: 0
+              }
+            };
+            
+            const agentRes = await createVoiceAgent(agentPayload);
+            const agentResponseData = agentRes.data;
+
+            // 3. Hydrate State
+            const mergedData = {
+              ...INITIAL_AGENT_STATE,
+              ...agentResponseData,
+              reacherrLlmData: {
+                ...INITIAL_AGENT_STATE.reacherrLlmData,
+                ...llmPayload,
+                ...llmRes.data,
+                generalTools: llmRes.data.generalTools || llmPayload.generalTools 
+              }
+            };
+
+            dispatch({ type: 'LOAD_TEMPLATE', payload: mergedData });
+            addToast("Initialized new agent", "success");
+
+          } else {
+            // --- TEMPLATE FLOW ---
+            // 1. Get Template/Agent Config
+            const templateRes = await createAgentFromTemplate(templateId);
+            const { responseEngine } = templateRes.data;
+
+            // Check if it's a Reacherr LLM engine
+            if (responseEngine && responseEngine.type === 'REACHERR_LLM' && (responseEngine as any).llmId) {
+              const llmId = (responseEngine as any).llmId;
+              
+              // 2. Get LLM Details
+              const llmRes = await getReacherrLlm(llmId);
+              const llmData = llmRes.data;
+
+              // 3. Hydrate State
+              const mergedData = {
+                ...INITIAL_AGENT_STATE,
+                ...templateRes.data,
+                reacherrLlmData: {
+                  ...INITIAL_AGENT_STATE.reacherrLlmData,
+                  ...llmData
+                }
+              };
+
+              dispatch({ type: 'LOAD_TEMPLATE', payload: mergedData });
+              addToast("Loaded template configuration", "success");
+            }
+          }
+        } catch (error) {
+          console.error("Failed to initialize agent:", error);
+          addToast("Failed to initialize agent", "error");
+        } finally {
+          setIsLoading(false);
+          // Optional: Clear location state to prevent re-running on refresh if desired, 
+          // but usually keeping it is fine or navigating replace.
+          // navigate(location.pathname, { replace: true, state: {} });
+        }
+      }
+    };
+
+    initAgent();
+  }, [location.state]);
 
   // Get llm config and voice config
   useEffect(() => {
@@ -99,14 +203,14 @@ const CreateAgentPage: React.FC = () => {
     temperature: agentData.reacherrLlmData.temperature || 0.2,
     knowledgeBaseItems: [],
     topK: agentData.reacherrLlmData.topK || 40,
-    knowledgeBase: agentData.reacherrLlmData.kbConfig.knowledgeBaseIds.map((id: string) => ({ id, name: id, type: 'pdf', status: 'ready' }))
+    knowledgeBase: (agentData.reacherrLlmData.kbConfig?.knowledgeBaseIds || []).map((id: string) => ({ id, name: id, type: 'pdf', status: 'ready' }))
   }), [agentData]);
 
   const derivedAudioData: AudioSettingsFormData = useMemo(() => ({
       language: agentData.language,
       sttProvider: agentData.sttConfig.provider,
       sttModel: agentData.sttConfig.model,
-      sttKeywords: agentData.sttConfig.settings.keywords.join(', '),
+      sttKeywords: agentData.sttConfig.settings?.keywords?.join(', ') || '',
       ttsProvider: agentData.ttsConfig.provider,
       ttsModel: agentData.ttsConfig.model,
       ttsVoiceId: agentData.ttsConfig.voiceId,
@@ -141,7 +245,7 @@ const CreateAgentPage: React.FC = () => {
   }), [agentData]);
 
   const derivedPostCallData: PostCallAnalysisData = useMemo(() => ({
-    extractionItems: agentData.postCallAnalysis.extractionItems.map((item: any) => ({
+    extractionItems: (agentData.postCallAnalysis?.extractionItems || []).map((item: any) => ({
       ...item,
       enabled: true,
       isOptional: false,
