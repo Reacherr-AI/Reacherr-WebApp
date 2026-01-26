@@ -10,7 +10,6 @@ import { Label } from '@/ui/label';
 import { Button } from '@/ui/button';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { cn } from '@/lib/utils';
-import { getAgentConversationData } from '@/api/client';
 
 const formatLabel = (str: string) => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
 
@@ -39,14 +38,14 @@ const AudioSettingsForm: React.FC<AudioSettingsFormProps> = ({ data, onChange, c
   [data.language, capabilities]);
 
   const currentSTTModels = useMemo(() => {
-    const provider = capabilities?.providers.find(p => p.slug === data.sttProvider);
+    const provider = filteredSTTProviders?.find(p => p.slug === data.sttProvider);
     return provider?.models.filter(m => m.modality === 'STT' && m.languages.includes(data.language)) || [];
-  }, [data.sttProvider, data.language, capabilities]);
+  }, [data.sttProvider, data.language, filteredSTTProviders]);
 
   const currentTTSModels = useMemo(() => {
-    const provider = capabilities?.providers.find(p => p.slug === data.ttsProvider);
+    const provider = filteredTTSProviders?.find(p => p.slug === data.ttsProvider);
     return provider?.models.filter(m => m.modality === 'TTS' && m.languages.includes(data.language)) || [];
-  }, [data.ttsProvider, data.language, capabilities]);
+  }, [data.ttsProvider, data.language, filteredTTSProviders]);
 
   // Find active models based on current selections
   const activeTTSModel = useMemo(() => 
