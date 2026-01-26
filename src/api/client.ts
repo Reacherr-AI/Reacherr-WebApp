@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { globalLogout } from '../context/AuthContext';
+// import { globalLogout } from '../context/AuthContext';
 import { ReacherrLLM, S3Meta, Template, VoiceAgent } from '../types';
+
 export const API_URL = 'http://localhost:8080/';
-// export const GOOGLE_LOGIN_URL = `${API_URL}/oauth2/authorization/google`;
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -11,29 +11,72 @@ const apiClient = axios.create({
   },
 });
 
+// Request Interceptor: Attach the current access token to all requests
 apiClient.interceptors.request.use(config => {
-  const token = "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlcyI6WyJST0xFX09XTkVSIl0sInN1YiI6ImxpdmVraXR0ZXN0MTZAZ21haWwuY29tIiwiaWF0IjoxNzY5MzY1NTg2LCJleHAiOjE3Njk5NzAzODZ9.PZghnRExUZhVT9g7LQh-Jrk8seQ359m2-rN51pW_ES-Jkn8SwE56KKJrUythU5uG6D2c4M34pmuBW_uvGcT00A"
+  const token = localStorage.getItem('temp_access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
+// Response Interceptor: Handle Token Expiration and Silent Refresh
 apiClient.interceptors.response.use(
   response => response,
-  error => {
-    if (error.response && error.response.status === 401) {
-      console.warn('Unauthorized – logging out');
-      globalLogout();
+  async error => {
+    const originalRequest = error.config;
+
+    // 1. If the error is 401 (Unauthorized) and we haven't tried refreshing yet
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      // 2. If no refresh token exists, redirect to login
+      if (!refreshToken) {
+        console.warn('No refresh token found – logging out');
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      try {
+        console.log('Access token expired. Attempting silent refresh...');
+        
+        // 3. Call the refresh endpoint
+        // Note: Use a separate axios instance to avoid infinite interceptor loops
+        const res = await axios.post(`${API_URL}api/v1/auth/refresh`, {
+          refreshToken: refreshToken
+        });
+
+        // 4. If refresh is successful, update tokens and retry
+        if (res.data.type === 'JWT') {
+          const { accessToken, refreshToken: newRefreshToken } = res.data;
+          
+          localStorage.setItem('temp_access_token', accessToken);
+          localStorage.setItem('refreshToken', newRefreshToken); // Rotate the refresh token
+          
+          // 5. Update the original request headers and retry it
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          return apiClient(originalRequest);
+        }
+      } catch (refreshError) {
+        // 6. If the refresh token itself is expired, clear all and force login
+        console.error('Refresh token expired or invalid');
+        localStorage.removeItem('temp_access_token');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
     }
+
     return Promise.reject(error);
   }
 );
 
-export const getAgentConversationData = () =>{
-  console.log('Fetching Agent Conversation Config Data for llm and Audio settings');
+// --- API Methods --- [Citations apply to existing structure in image_f1a041.jpg]
+
+export const getAgentConversationData = () => {
   return apiClient.get(`/api/v1/conversation/config`);
-}
+};
 
 export const getTemplates = (): Promise<{ data: Template[] }> => {
   return apiClient.get('/api/v1/templates');
@@ -68,8 +111,8 @@ export const uploadKnowledgeBase = (fileName: string, contentType: string, busin
 export const deleteAgent = (businessId: number, agentId: number) => {
   return apiClient.delete(`/agent/${businessId}`, {
     params: { agentId }
-  })
-}
+  });
+};
 
 export const deleteKnowledgeBase = (businessId: number, fileId: string, contentType: string) => {
   return apiClient.delete(`/storage/delete-KBase/${businessId}`, { params: { fileId, contentType } });
@@ -79,15 +122,15 @@ export const getKnowledgeBaseDownloadUrl = (businessId: number, fileId: string, 
   return apiClient.get(`/storage/get-kb/${businessId}`, {
     params: { fileId, contentType }
   });
-}
+};
 
 export const getVoiceUrl = (voiceId: string) => {
   return apiClient.get(`/storage/voice`, { params: { voiceId } });
 };
 
 export const getRecordingUrl = (recordingObjKey: string) => {
-  return apiClient.get(`/storage/recording`, { params: { recordingObjKey } })
-}
+  return apiClient.get(`/storage/recording`, { params: { recordingObjKey } });
+};
 
 export const createAgentFromTemplate = (templateId: string) => {
   return apiClient.post<{agentId: string, responseEngine: { llmId: string }} & Partial<VoiceAgent>>(`/api/v1/create-agent-from-template/${templateId}`);
