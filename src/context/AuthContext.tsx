@@ -1,5 +1,5 @@
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 // 1. Define the Context
 export const AuthContext = createContext<any>(null);
@@ -12,7 +12,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Define API URL from environment
   const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
+useEffect(() => {
+    const restoreSession = async () => {
+      const storedAccessToken = localStorage.getItem('temp_access_token');
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+      if (storedAccessToken && storedRefreshToken) {
+        setAccessToken(storedAccessToken);
+        // 3. Optional: Trigger a silent refresh to ensure the token is still valid
+        // await refreshSession(); 
+      }
+      setLoading(false);
+    };
+    restoreSession();
+  }, []);
   const logout = useCallback(() => {
     setUser(null);
     setAccessToken(null);
