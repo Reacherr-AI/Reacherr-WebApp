@@ -144,6 +144,10 @@ export const createReacherrLlm = (data: Partial<ReacherrLLM>) => {
   return apiClient.post<ReacherrLLM>(`/api/v1/create-reacherr-llm`, data);
 };
 
+export const updateReacherrLlm = (llmId: string, data: Partial<ReacherrLLM>) => {
+  return apiClient.patch<ReacherrLLM>(`/api/v1/update-reacherr-llm/${llmId}`, data);
+};
+
 export const createVoiceAgent = (data: Partial<VoiceAgent>) => {
   return apiClient.post<VoiceAgent>(`/api/v1/create-voice-agent`, data);
 };
