@@ -159,7 +159,7 @@ export interface StaticTextVoicemailAction {
 
 export interface PromptVoicemailAction {
   type: 'prompt';
-  promptId: string;
+  prompt: string;
 }
 
 export interface HungupVoicemailAction {

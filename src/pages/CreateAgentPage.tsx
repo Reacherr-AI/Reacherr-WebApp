@@ -3,8 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ChevronLeft, User, Settings2, BrainCircuit, 
   Variable, BarChart4, Cpu, Edit2, Phone, 
-  MessageCircle, Zap, Check
+  MessageCircle, Zap, Check, Cloud, Loader2
 } from 'lucide-react';
+
+import { debounce } from 'lodash';
 
 import { Button } from '@/ui/button';
 import { Skeleton } from '@/ui/skeleton';
@@ -29,17 +31,87 @@ import { INITIAL_AGENT_STATE } from '@/constants/initialAgentState';
 import {
   getAgentConversationData, postAgent,
   createAgentFromTemplate, getReacherrLlm, 
-  createReacherrLlm, createVoiceAgent 
+  createReacherrLlm, createVoiceAgent,
+  updateReacherrLlm
 } from '@/api/client';
 import { 
    AgentFormData, LLMSettingsFormData, 
   AudioSettingsFormData, CallSettingsFormData, PostCallAnalysisData, FunctionSettingsFormData,
-  CustomFunction
+  CustomFunction,
+  AnalysisExtractionItem
 } from '../components/AgentForm/AgentForm.types';
 import { ReacherrLLM, VoiceAgent, Tool, ReacherrLLMRefDto } from '@/types';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import LaunchAgentModal from '@/components/AgentForm/subcomponents/LaunchAgentModal';
+
+// --- Helper: Map API Response to State ---
+const mapApiResponseToState = (voiceAgent: Partial<VoiceAgent>, llm: Partial<ReacherrLLM>) => {
+  return {
+    ...INITIAL_AGENT_STATE, // Start with clean defaults
+    
+    // Identity
+    agentId: voiceAgent.agentId || "",
+    agentName: voiceAgent.agentName || "",
+    
+    // Global Config
+    channel: "voice",
+    language: voiceAgent.language || "en-US",
+    webhookUrl: voiceAgent.webhookUrl || "",
+    
+    // Call Settings
+    maxCallDurationMs: voiceAgent.maxCallDurationMs || INITIAL_AGENT_STATE.maxCallDurationMs,
+    ringTimeOutMs: voiceAgent.ringTimeOutMs || INITIAL_AGENT_STATE.ringTimeOutMs,
+    noResponseTimeoutMs: voiceAgent.noResponseTimeoutMs || INITIAL_AGENT_STATE.noResponseTimeoutMs,
+    ivrhangup: voiceAgent.ivrhangup ?? true,
+    reEngageAttempts: voiceAgent.reEngageAttempts ?? 3,
+    reEngageMessage: voiceAgent.reEngageMessage || "",
+    waitDurationMs: voiceAgent.waitDurationMs || 1000,
+    userGreetingType: voiceAgent.userGreetingType || 'static',
+
+    // Audio
+    ttsConfig: voiceAgent.ttsConfig || INITIAL_AGENT_STATE.ttsConfig,
+    sttConfig: voiceAgent.sttConfig || INITIAL_AGENT_STATE.sttConfig,
+
+    // LLM
+    reacherrLlmData: {
+      ...INITIAL_AGENT_STATE.reacherrLlmData,
+      ...llm,
+      generalTools: llm.generalTools || [],
+      // Ensure specific fields map if names differ
+    },
+
+    // Post Call Analysis
+    postCallAnalysis: {
+      webhookEnabled: !!voiceAgent.webhookUrl, 
+      webhookUrl: voiceAgent.webhookUrl || "",
+      webhookTimeout: voiceAgent.webhookTimeoutMs || 45,
+      extractionItems: (voiceAgent.postCallAnalysisData || []).map((item: any) => ({
+        id: item.name, 
+        name: item.name,
+        description: item.description,
+        type: item.type === 'enum' ? 'selector' : item.type === 'string' ? 'text' : item.type,
+        options: item.choices || [],
+        enabled: true, // Assuming enabled by default if present in list
+        isOptional: false
+      } as AnalysisExtractionItem))
+    },
+
+    // Voicemail
+    voicemailDetection: {
+      enabled: voiceAgent.enableVoicemailDetection || false,
+      action: voiceAgent.voiceMailDetection?.action?.type || 'hangup',
+      message: (voiceAgent.voiceMailDetection?.action as any)?.text || (voiceAgent.voiceMailDetection?.action as any)?.promptId || ""
+    },
+    
+    // Metadata
+    versionMetadata: {
+      version: voiceAgent.version || 0,
+      isPublished: voiceAgent.isPublished || false,
+      lastModificationTimestamp: voiceAgent.lastUpdatedTimestamp || 0
+    }
+  };
+};
 
 const NAV_ITEMS = [
   { id: 'agent', label: 'Agent Identity', icon: User },
@@ -58,6 +130,8 @@ const CreateAgentPage: React.FC = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [appCapabilities, setAppCapabilities] = useState<any>(null);
   const [isLaunchModalOpen, setIsLaunchModalOpen] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,6 +142,31 @@ const CreateAgentPage: React.FC = () => {
   const updateField = useCallback((path: string, value: any) => {
     dispatch({ type: 'UPDATE_FIELD', path, value });
   }, []);
+
+  // Auto-save LLM Data
+  const debouncedUpdateLLM = useMemo(
+    () => debounce(async (llmId: string, data: any) => {
+      setIsAutoSaving(true);
+      try {
+        await updateReacherrLlm(llmId, data);
+        setLastSaved(new Date());
+      } catch (error) {
+        console.error("Auto-save failed:", error);
+      } finally {
+        setIsAutoSaving(false);
+      }
+    }, 2000),
+    []
+  );
+
+  useEffect(() => {
+    if (agentData.reacherrLlmData?.llmId && !isLoading) {
+      debouncedUpdateLLM(agentData.reacherrLlmData.llmId, agentData.reacherrLlmData);
+    }
+    return () => {
+      debouncedUpdateLLM.cancel();
+    }
+  }, [agentData.reacherrLlmData, isLoading, debouncedUpdateLLM]);
 
   // Handle Template Initialization
   useEffect(() => {
@@ -109,17 +208,12 @@ const CreateAgentPage: React.FC = () => {
             const agentRes = await createVoiceAgent(agentPayload);
             const agentResponseData = agentRes.data;
 
-            // 3. Hydrate State
-            const mergedData = {
-              ...INITIAL_AGENT_STATE,
-              ...agentResponseData,
-              reacherrLlmData: {
-                ...INITIAL_AGENT_STATE.reacherrLlmData,
+            // 3. Hydrate State using Mapper
+            const mergedData = mapApiResponseToState(agentResponseData, {
                 ...llmPayload,
                 ...llmRes.data,
                 generalTools: llmRes.data.generalTools || llmPayload.generalTools 
-              }
-            };
+            });
 
             dispatch({ type: 'LOAD_TEMPLATE', payload: mergedData });
             addToast("Initialized new agent", "success");
@@ -138,15 +232,8 @@ const CreateAgentPage: React.FC = () => {
               const llmRes = await getReacherrLlm(llmId);
               const llmData = llmRes.data;
 
-              // 3. Hydrate State
-              const mergedData = {
-                ...INITIAL_AGENT_STATE,
-                ...templateRes.data,
-                reacherrLlmData: {
-                  ...INITIAL_AGENT_STATE.reacherrLlmData,
-                  ...llmData
-                }
-              };
+              // 3. Hydrate State using Mapper
+              const mergedData = mapApiResponseToState(templateRes.data, llmData);
 
               dispatch({ type: 'LOAD_TEMPLATE', payload: mergedData });
               addToast("Loaded template configuration", "success");
@@ -578,7 +665,13 @@ const CreateAgentPage: React.FC = () => {
               )}
             </div>
             <div className="flex items-center gap-3 text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
-              <span>ACTIVE PIPELINE</span>
+              {isAutoSaving ? (
+                 <div className="flex items-center gap-1.5 text-blue-500"><Loader2 size={10} className="animate-spin" /> Saving...</div>
+              ) : lastSaved ? (
+                 <div className="flex items-center gap-1.5 text-emerald-500"><Cloud size={10} /> Saved {lastSaved.toLocaleTimeString()}</div>
+              ) : (
+                 <span>Draft Mode</span>
+              )}
               <span className="h-3 w-px bg-zinc-200" />
               <div className="flex items-center gap-1.5 text-blue-600"><Zap size={10} fill="currentColor"/> 1050ms Avg. Latency</div>
             </div>

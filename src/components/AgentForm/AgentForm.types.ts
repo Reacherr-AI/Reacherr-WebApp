@@ -164,7 +164,7 @@ export interface AudioSettingsFormProps {
 // 7. Call Settings (Flow Control)
 // ==========================================
 
-export type VoicemailAction = 'hangup' | 'leave_message';
+export type VoicemailAction = 'hangup' | 'static_text' | 'prompt';
 
 export interface CallSettingsFormData {
   reEngageEnabled: boolean;
