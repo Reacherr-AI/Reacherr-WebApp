@@ -12,33 +12,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Define API URL from environment
   const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-useEffect(() => {
-    const restoreSession = async () => {
-      const storedAccessToken = localStorage.getItem('temp_access_token');
-      const storedRefreshToken = localStorage.getItem('refreshToken');
-      if (storedAccessToken && storedRefreshToken) {
-        setAccessToken(storedAccessToken);
-        // 3. Optional: Trigger a silent refresh to ensure the token is still valid
-        // await refreshSession(); 
-      }
-      setLoading(false);
-    };
-    restoreSession();
-  }, []);
+
   const logout = useCallback(() => {
     setUser(null);
     setAccessToken(null);
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('temp_access_token');
+    localStorage.removeItem('user_data');
   }, []);
 
   const login = useCallback((data: any) => {
     // Backend returns userId and username in the JWT response
-    setUser({ id: data.userId, username: data.username });
+    const userData = { id: data.userId, username: data.username };
+    setUser(userData);
     setAccessToken(data.accessToken);
     
     // Store access token for the Axios interceptor and refresh token for persistence
     localStorage.setItem('temp_access_token', data.accessToken);
+    localStorage.setItem('user_data', JSON.stringify(userData));
+
     if (data.refreshToken) {
       localStorage.setItem('refreshToken', data.refreshToken);
     }
@@ -48,8 +40,7 @@ useEffect(() => {
     const storedRefreshToken = localStorage.getItem('refreshToken');
     
     if (!storedRefreshToken) {
-      setLoading(false);
-      return null;
+        return null;
     }
 
     try {
@@ -66,13 +57,29 @@ useEffect(() => {
       console.error("Refresh failed or expired. Please login again.");
       logout();
       return null;
-    } finally {
-      setLoading(false);
     }
   }, [API_URL, login, logout]);
 
   useEffect(() => {
-    refreshSession();
+    const initSession = async () => {
+      const storedAccessToken = localStorage.getItem('temp_access_token');
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+      const storedUser = localStorage.getItem('user_data');
+
+      if (storedAccessToken && storedRefreshToken && storedUser) {
+        setAccessToken(storedAccessToken);
+        try {
+            setUser(JSON.parse(storedUser));
+        } catch (e) {
+            console.error("Failed to parse user data", e);
+        }
+      } else {
+        // If we have a refresh token but no access token (edge case), try refresh
+        await refreshSession();
+      }
+      setLoading(false);
+    };
+    initSession();
   }, [refreshSession]);
 
   const value = {

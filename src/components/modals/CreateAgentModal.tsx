@@ -13,11 +13,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Template, TemplateType } from '../../types/agentTemplate';
+import { AgentType, Template } from '../../types/agentTemplate';
 
 
 const CreateAgentModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
-  const [architecture, setArchitecture] = useState<TemplateType>('single-prompt');
+  const [architecture, setArchitecture] = useState<AgentType>('single-prompt');
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('blank');
   const navigate = useNavigate();
@@ -120,7 +120,7 @@ const CreateAgentModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
 
               {/* Dynamic Templates from API */}
               {templates.map((template) => (
-                template.templateType == architecture ? 
+                template.agentType == architecture ? 
                 <button
                   key={template.id}
                   onClick={() => setSelectedTemplateId(template.id)}

@@ -42,7 +42,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!user) return;
     setLoading(true);
     try {
-      const response = await getAllAgentsData(user.bId);
+      const response = await getAllAgentsData();
       setAgents(response.data);
       setError(null);
     } catch (err) {
