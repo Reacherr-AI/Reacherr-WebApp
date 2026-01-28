@@ -90,19 +90,23 @@ const CallSettingsForm: React.FC<CallSettingsFormProps> = ({ data, onChange }) =
                         <RadioGroupItem value="hangup" id="hangup" className="scale-75" />
                         <Label htmlFor="hangup" className="cursor-pointer font-medium text-zinc-700">Immediate Hangup</Label>
                     </div>
-                    <div className={cn("flex items-center space-x-2 p-2.5 rounded-lg border text-xs transition-all", data.voicemailAction === 'leave_message' ? "bg-blue-50/30 border-blue-200" : "border-zinc-100")}>
-                        <RadioGroupItem value="leave_message" id="leave_message" className="scale-75" />
-                        <Label htmlFor="leave_message" className="cursor-pointer font-medium text-zinc-700">Leave Message</Label>
+                    <div className={cn("flex items-center space-x-2 p-2.5 rounded-lg border text-xs transition-all", data.voicemailAction === 'static_text' ? "bg-blue-50/30 border-blue-200" : "border-zinc-100")}>
+                        <RadioGroupItem value="static_text" id="static_text" className="scale-75" />
+                        <Label htmlFor="static_text" className="cursor-pointer font-medium text-zinc-700">Static Text</Label>
+                    </div>
+                    <div className={cn("flex items-center space-x-2 p-2.5 rounded-lg border text-xs transition-all", data.voicemailAction === 'prompt' ? "bg-blue-50/30 border-blue-200" : "border-zinc-100")}>
+                        <RadioGroupItem value="prompt" id="prompt" className="scale-75" />
+                        <Label htmlFor="prompt" className="cursor-pointer font-medium text-zinc-700">AI Prompt</Label>
                     </div>
                 </RadioGroup>
             </div>
             <div className="lg:col-span-8">
-                {data.voicemailAction === 'leave_message' ? (
+                {data.voicemailAction !== 'hangup' ? (
                   <Textarea 
                     value={data.voicemailMessage} 
                     onChange={(e) => onChange('voicemailMessage', e.target.value)} 
-                    placeholder="Hey {{user_name}}, please call back..." 
-                    className="min-h-[104px] bg-zinc-50/30 border-zinc-200 p-4 text-sm rounded-xl" 
+                    placeholder={data.voicemailAction === 'prompt' ? "Prompt the AI on what to say in the voicemail..." : "Hey {{user_name}}, please call back..."} 
+                    className="min-h-[140px] bg-zinc-50/30 border-zinc-200 p-4 text-sm rounded-xl" 
                   />
                 ) : (
                   <div className="h-full min-h-[104px] flex items-center justify-center border-2 border-dashed border-zinc-50 rounded-xl bg-zinc-50/30">

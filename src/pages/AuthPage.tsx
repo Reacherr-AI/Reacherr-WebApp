@@ -1,5 +1,5 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useContext, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { 
@@ -22,6 +22,32 @@ const AuthPage: React.FC = () => {
   const { login } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if we were redirected here with a challenge (e.g. from Google OAuth callback)
+    if (location.state?.challengeToken && location.state?.challengeType) {
+        const { challengeToken, challengeType, target } = location.state;
+        setChallengeToken(challengeToken);
+        if (target) setUserIdentifier(target);
+
+        // Map backend challenge types to frontend steps
+        switch (challengeType) {
+            case 'ADD_PHONE':
+                setStep(3);
+                break;
+            case 'PHONE':
+                setStep(4);
+                break;
+            case 'EMAIL':
+                setStep(2);
+                break;
+            default:
+                // If unknown, stick to login or handle error
+                break;
+        }
+    }
+  }, [location.state]);
 
   // --- HANDLERS ---
     const handleSignIn = async (credentials: any) => {
