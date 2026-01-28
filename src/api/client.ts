@@ -11,6 +11,7 @@ const apiClient = axios.create({
   },
 });
 
+
 // Request Interceptor: Attach the current access token to all requests
 apiClient.interceptors.request.use(config => {
   const token = localStorage.getItem('temp_access_token');
