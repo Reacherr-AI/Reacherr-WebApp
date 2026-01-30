@@ -1,8 +1,8 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext, useCallback } from 'react';
-import { AgentResponseDto } from '../components/AgentForm/AgentForm.types';
 import { getAllAgentsData } from '../api/client';
 import { useAuth } from './AuthContext';
-import { Message } from '../types/chat';
+import { Message } from '@/types/chat';
+import { AgentSummary } from '@/types/agentList';
 
 interface ChatHistories {
   [agentId: string]: Message[];
@@ -13,10 +13,11 @@ interface ChatSessions {
 }
 
 interface AppContextType {
-  agents: AgentResponseDto[];
+  // Updated from [] to AgentSummary[]
+  agents: AgentSummary[]; 
   loading: boolean;
   error: string | null;
-  fetchAgents: () => void;
+  fetchAgents: () => Promise<void>;
   chatHistories: ChatHistories;
   chatSessions: ChatSessions;
   addMessageToHistory: (agentId: string, message: Message) => void;
@@ -29,20 +30,29 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
-  const [agents, setAgents] = useState<AgentResponseDto[]>([]);
+  
+  // Refactored state initialization
+  const [agents, setAgents] = useState<AgentSummary[]>([]); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Preserved chat and UI states
   const [chatHistories, setChatHistories] = useState<ChatHistories>({});
   const [chatSessions, setChatSessions] = useState<ChatSessions>({});
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  /**
+   * Refactored fetch logic to match backend AgentSummary
+   */
 
   const fetchAgents = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
       const response = await getAllAgentsData();
+      // Directly setting the data array from backend
       setAgents(response.data);
       setError(null);
     } catch (err) {
@@ -53,6 +63,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [user]);
 
+  // --- Preserved Logic for Chat and Sessions ---
 
   const addMessageToHistory = (agentId: string, message: Message) => {
     setChatHistories(prev => ({

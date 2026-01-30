@@ -40,7 +40,7 @@ import {
   CustomFunction,
   AnalysisExtractionItem
 } from '../components/AgentForm/AgentForm.types';
-import { ReacherrLLM, VoiceAgent, Tool, ReacherrLLMRefDto } from '@/types';
+import { ReacherrLLM, VoiceAgent, Tool } from '@/types';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import LaunchAgentModal from '@/components/AgentForm/subcomponents/LaunchAgentModal';
