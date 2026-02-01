@@ -1,17 +1,16 @@
 
-import React, { useState, useContext } from 'react';
-import { NavLink } from 'react-router-dom';
-import { 
-  Users, 
-  ChevronLeft,
+import {
+  HelpCircle,
   PanelLeftClose,
   PanelLeftOpen,
-  HelpCircle
+  Users
 } from 'lucide-react';
+import React, { useContext, useState } from 'react';
+import { NavLink } from 'react-router-dom';
 
-import { AuthContext } from '@/context/AuthContext'; 
 import UserMenu from '@/components/userMenu';
-import { cn } from '@/lib/utils'; 
+import { AuthContext } from '@/context/AuthContext';
+import { cn } from '@/lib/utils';
 
 const Sidebar: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -53,7 +52,7 @@ const Sidebar: React.FC = () => {
       )}>
         {!isCollapsed && (
           <div className="animate-in fade-in duration-500">
-            <h1 className="text-xl font-bold text-white tracking-tight leading-none">Callie</h1>
+            <h1 className="text-xl font-bold text-white tracking-tight leading-none">Reacherr AI</h1>
             <p className="text-[10px] font-medium text-gray-500 mt-1 uppercase tracking-wider">
               V 1.0.2
             </p>

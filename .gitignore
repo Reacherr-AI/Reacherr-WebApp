@@ -31,3 +31,5 @@ yarn-error.log*
 # OS related files
 .DS_Store
 Thumbs.db
+.gemini/
+gha-creds-*.json
