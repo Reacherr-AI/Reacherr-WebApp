@@ -83,6 +83,53 @@ export interface Recording {
   preSignUrl?: string;
 }
 
+// --- Phone Numbers ---
+
+export enum CountryCodeType {
+    US = "US",
+    CA = "CA",
+    IN = "IN",
+    IT = "IT",
+    FR = "FR"
+}
+
+export enum PhoneNumberType {
+    TWILIO = "TWILIO",
+    CUSTOM = "CUSTOM",
+    TELNYX = "TELNYX",
+    PLIVO = "PLIVO"
+}
+
+export enum SIPTransportType {
+    UDP = "UDP",
+    TCP = "TCP",
+    TLS = "TLS",
+    AUTO = "AUTO"
+}
+
+export interface SipTrunk {
+    terminationUri: string;
+    authUsername: string;
+    authPassword: string;
+    transportType: SIPTransportType;
+}
+
+export interface PhoneNumber {
+    phoneNumber: string;
+    isTollFree: boolean;
+    countryCode: CountryCodeType;
+    nickname: string;
+    inboundWebhookUrl?: string;
+    areaCode?: number;
+    allowedInboundCountry?: CountryCodeType[];
+    allowedOutboundCountry?: CountryCodeType[];
+    phoneNumberType: PhoneNumberType;
+    inboundAgentId?: string; // UUID
+    outboundAgentId?: string; // UUID
+    sipTrunkConfig?: SipTrunk;
+}
+
+
 // --- Voice Agent Core ---
 
 // Enums

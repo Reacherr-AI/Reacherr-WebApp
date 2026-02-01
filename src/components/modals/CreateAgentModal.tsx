@@ -1,11 +1,13 @@
-import { getTemplates } from '@/api/client';
+import { createAgentFromTemplate, createReacherrLlm, createVoiceAgent, getTemplates } from '@/api/client';
 import { cn } from '@/lib/utils';
+import { ReacherrLLM, Tool, VoiceAgent } from '@/types';
 import { Button } from '@/ui/button';
 import {
   Dialog, DialogContent, DialogTitle
 } from '@/ui/dialog';
 import {
   LayoutGrid,
+  Loader2,
   MessageSquare,
   Sparkles,
   Waypoints,
@@ -20,6 +22,7 @@ const CreateAgentModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
   const [architecture, setArchitecture] = useState<AgentType>('single-prompt');
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('blank');
+  const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
 
   // Fetch templates from the dynamic API
@@ -31,11 +34,52 @@ const CreateAgentModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
     }
   }, [isOpen]);
 
-  const handleCreate = () => {
-    navigate('/agents/create', { 
-      state: { architecture, templateId: selectedTemplateId } 
-    });
-    onClose();
+  const handleCreate = async () => {
+    setIsCreating(true);
+    try {
+      let newAgentId = '';
+
+      if (selectedTemplateId === 'blank') {
+         const llmPayload: Partial<ReacherrLLM> = {
+            beginMessage: "",
+            generalTools: [
+              {
+                type: "end_call",
+                name: "end_call",
+                description: "End the call when user has to leave (like says bye) or you are instructed to do so."
+              } as Tool
+            ],
+            toolCallStrictMode: false
+          };
+          
+          const llmRes = await createReacherrLlm(llmPayload);
+          const llmId = llmRes.data.llmId;
+
+          const agentPayload: Partial<VoiceAgent> = {
+            agentName: "Single-Prompt Agent",
+            responseEngine: {
+              type: "REACHERR_LLM",
+              llmId: llmId,
+              version: 0
+            }
+          };
+          
+          const agentRes = await createVoiceAgent(agentPayload);
+          newAgentId = agentRes.data.agentId || '';
+      } else {
+          const templateRes = await createAgentFromTemplate(selectedTemplateId);
+          newAgentId = templateRes.data.agentId || '';
+      }
+
+      if (newAgentId) {
+        navigate(`/agents/${newAgentId}`);
+        onClose();
+      }
+    } catch (error) {
+      console.error("Failed to create agent:", error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -148,9 +192,10 @@ const CreateAgentModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =>
           </Button>
           <Button 
             onClick={handleCreate}
+            disabled={isCreating}
             className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 h-9 px-7 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-all"
           >
-            Create Agent
+            {isCreating ? <><Loader2 size={14} className="animate-spin mr-2"/> Creating...</> : 'Create Agent'}
           </Button>
         </div>
       </DialogContent>

@@ -15,7 +15,7 @@ const App: React.FC = () => {
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/agents" element={<AgentsPage />} />
-          <Route path="/agents/create" element={<CreateAgentPage />} />
+          <Route path="/agents/:agentId" element={<CreateAgentPage />} />
         </Route>
       </Route>
 
