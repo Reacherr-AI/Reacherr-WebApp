@@ -1,49 +1,64 @@
-import React, { useContext, useState, useMemo, useReducer, useCallback, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  ChevronLeft, User, Settings2, BrainCircuit, 
-  Variable, BarChart4, Cpu, Edit2, Phone, 
-  MessageCircle, Zap, Check, Cloud, Loader2
+import {
+  BarChart4,
+  BrainCircuit,
+  Check,
+  ChevronLeft,
+  Cloud,
+  Cpu, Edit2,
+  Loader2,
+  MessageCircle,
+  Phone,
+  Settings2,
+  User,
+  Variable,
+  Zap
 } from 'lucide-react';
+import React, { useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { debounce } from 'lodash';
 
-import { Button } from '@/ui/button';
-import { Skeleton } from '@/ui/skeleton';
-import { Input } from '@/ui/input';
 import { cn } from '@/lib/utils';
+import { Button } from '@/ui/button';
+import { Input } from '@/ui/input';
+import { Skeleton } from '@/ui/skeleton';
 
 // Shared Components
 import SegmentedMetric from '../components/AgentForm/subcomponents/SegmentedMetric';
 
 // Tab Form Components
 import AgentForm from '../components/AgentForm/AgentForm';
-import LLMSettingsForm from '../components/AgentForm/LLMSettingsForm';
 import AudioSettingsForm from '../components/AgentForm/AudioSettingsForm';
 import CallSettingsForm from '../components/AgentForm/CallSettingsForm';
-import PostCallAnalysisForm from '../components/AgentForm/PostCallAnalysisForm';
 import FunctionSettingsForm from '../components/AgentForm/FunctionSettingsForm';
+import LLMSettingsForm from '../components/AgentForm/LLMSettingsForm';
+import PostCallAnalysisForm from '../components/AgentForm/PostCallAnalysisForm';
 
-import { agentReducer } from '@/reducers/agentReducer';
 import { INITIAL_AGENT_STATE } from '@/constants/initialAgentState';
+import { agentReducer } from '@/reducers/agentReducer';
 
 // API and Contexts
 import {
-  getAgentConversationData, postAgent,
-  createAgentFromTemplate, getReacherrLlm, 
-  createReacherrLlm, createVoiceAgent,
-  updateReacherrLlm
+  getAgentConversationData,
+  getReacherrLlm,
+  getVoiceAgent,
+  updateReacherrLlm, updateVoiceAgent,
+  listPhoneNumber,
+  updatePhoneNumber
 } from '@/api/client';
-import { 
-   AgentFormData, LLMSettingsFormData, 
-  AudioSettingsFormData, CallSettingsFormData, PostCallAnalysisData, FunctionSettingsFormData,
+import LaunchAgentModal from '@/components/AgentForm/subcomponents/LaunchAgentModal';
+import { ReacherrLLM, VoiceAgent, PhoneNumber } from '@/types';
+import {
+  AgentFormData,
+  AnalysisExtractionItem,
+  AudioSettingsFormData, CallSettingsFormData,
   CustomFunction,
-  AnalysisExtractionItem
+  FunctionSettingsFormData,
+  LLMSettingsFormData,
+  PostCallAnalysisData
 } from '../components/AgentForm/AgentForm.types';
-import { ReacherrLLM, VoiceAgent, Tool } from '@/types';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import LaunchAgentModal from '@/components/AgentForm/subcomponents/LaunchAgentModal';
 
 // --- Helper: Map API Response to State ---
 const mapApiResponseToState = (voiceAgent: Partial<VoiceAgent>, llm: Partial<ReacherrLLM>) => {
@@ -126,6 +141,7 @@ const CreateAgentPage: React.FC = () => {
   const [agentData, dispatch] = useReducer(agentReducer, INITIAL_AGENT_STATE);
   const [activeTab, setActiveTab] = useState('agent');
   const [isLoading, setIsLoading] = useState(false);
+  const [isConfigLoading, setIsConfigLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [appCapabilities, setAppCapabilities] = useState<any>(null);
@@ -133,10 +149,34 @@ const CreateAgentPage: React.FC = () => {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
+  const { agentId } = useParams<{ agentId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const auth = useContext(AuthContext);
   const { addToast } = useToast();
+  
+  const [phoneList, setPhoneList] = useState<PhoneNumber[]>([]);
+
+  // Fetch Phone Numbers
+  const fetchPhones = useCallback(async () => {
+    try {
+      const res = await listPhoneNumber();
+      setPhoneList(res.data);
+    } catch (e) {
+      console.error("Failed to fetch phone numbers", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPhones();
+  }, [fetchPhones]);
+
+  // Redirect if agentId is missing or the legacy "create" string
+  useEffect(() => {
+    if (!agentId || agentId === 'create') {
+      navigate('/agents', { replace: true });
+    }
+  }, [agentId, navigate]);
 
   // Helper to update global state via reducer
   const updateField = useCallback((path: string, value: any) => {
@@ -168,97 +208,43 @@ const CreateAgentPage: React.FC = () => {
     }
   }, [agentData.reacherrLlmData, isLoading, debouncedUpdateLLM]);
 
-  // Handle Template Initialization
+  // Handle Agent Fetching
   useEffect(() => {
-    const initAgent = async () => {
-      if (location.state?.templateId) {
-        const { templateId } = location.state;
-        
-        try {
-          setIsLoading(true);
+    const fetchAgent = async () => {
+      if (!agentId || agentId === 'create') return;
 
-          if (templateId === 'blank') {
-            // --- BLANK FLOW ---
-            const llmPayload: Partial<ReacherrLLM> = {
-              beginMessage: "",
-              generalTools: [
-                {
-                  type: "end_call",
-                  name: "end_call",
-                  description: "End the call when user has to leave (like says bye) or you are instructed to do so."
-                } as Tool
-              ],
-              toolCallStrictMode: false
-            };
-            
-            // 1. Create LLM
-            const llmRes = await createReacherrLlm(llmPayload);
-            const llmId = llmRes.data.llmId;
+      try {
+        setIsLoading(true);
+        const agentRes = await getVoiceAgent(agentId);
+        const agentData = agentRes.data;
 
-            // 2. Create Voice Agent
-            const agentPayload: Partial<VoiceAgent> = {
-              agentName: "Single-Prompt Agent",
-              responseEngine: {
-                type: "REACHERR_LLM",
-                llmId: llmId,
-                version: 0
-              }
-            };
-            
-            const agentRes = await createVoiceAgent(agentPayload);
-            const agentResponseData = agentRes.data;
-
-            // 3. Hydrate State using Mapper
-            const mergedData = mapApiResponseToState(agentResponseData, {
-                ...llmPayload,
-                ...llmRes.data,
-                generalTools: llmRes.data.generalTools || llmPayload.generalTools 
-            });
-
-            dispatch({ type: 'LOAD_TEMPLATE', payload: mergedData });
-            addToast("Initialized new agent", "success");
-
-          } else {
-            // --- TEMPLATE FLOW ---
-            // 1. Get Template/Agent Config
-            const templateRes = await createAgentFromTemplate(templateId);
-            const { responseEngine } = templateRes.data;
-
-            // Check if it's a Reacherr LLM engine
-            if (responseEngine && responseEngine.type === 'REACHERR_LLM' && (responseEngine as any).llmId) {
-              const llmId = (responseEngine as any).llmId;
-              
-              // 2. Get LLM Details
-              const llmRes = await getReacherrLlm(llmId);
-              const llmData = llmRes.data;
-
-              // 3. Hydrate State using Mapper
-              const mergedData = mapApiResponseToState(templateRes.data, llmData);
-
-              dispatch({ type: 'LOAD_TEMPLATE', payload: mergedData });
-              addToast("Loaded template configuration", "success");
-            }
-          }
-        } catch (error) {
-          console.error("Failed to initialize agent:", error);
-          addToast("Failed to initialize agent", "error");
-        } finally {
-          setIsLoading(false);
-          // Optional: Clear location state to prevent re-running on refresh if desired, 
-          // but usually keeping it is fine or navigating replace.
-          // navigate(location.pathname, { replace: true, state: {} });
+        let llmData = {};
+        // Only fetch LLM if it's a Reacherr LLM type
+        if (agentData.responseEngine?.type === 'REACHERR_LLM' && (agentData.responseEngine as any).llmId) {
+            const llmId = (agentData.responseEngine as any).llmId;
+            const llmRes = await getReacherrLlm(llmId);
+            llmData = llmRes.data;
         }
+
+        const mergedData = mapApiResponseToState(agentData, llmData);
+        dispatch({ type: 'LOAD_TEMPLATE', payload: mergedData });
+        addToast("Loaded agent configuration", "success");
+      } catch (error) {
+        console.error("Failed to fetch agent:", error);
+        addToast("Failed to load agent", "error");
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    initAgent();
-  }, [location.state]);
+    fetchAgent();
+  }, [agentId]);
 
   // Get llm config and voice config
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
+        setIsConfigLoading(true);
         const response = await getAgentConversationData();
         setAppCapabilities(response.data);
         // Console log to see the structure before mapping
@@ -267,7 +253,7 @@ const CreateAgentPage: React.FC = () => {
         console.error("CORS or Network Error:", error);
         addToast("Failed to connect to backend", "error");
       } finally {
-        setIsLoading(false);
+        setIsConfigLoading(false);
       }
     };
     fetchData();
@@ -597,23 +583,125 @@ const CreateAgentPage: React.FC = () => {
 
   // ---
 
-  const handleSubmit = async () => {
-    if (!auth?.user?.bId) return;
+  const handleSubmit = async (publishData?: any) => {
+    // Check if user is logged in and agentId exists. Removed bId check as it's not in AuthContext user object.
+    if (!auth?.user || !agentData.agentId) {
+      console.warn("Submit aborted: Missing user or agentId", { user: auth?.user, agentId: agentData.agentId });
+      return;
+    }
     setIsSaving(true);
     try {
-      // Construct payload from agentData
-      await postAgent(agentData); // Assuming API accepts this structure
-      addToast('Agent created successfully!', 'success');
-      navigate('/agents');
+      // Map state back to VoiceAgent DTO
+      const payload: Partial<VoiceAgent> = {
+        agentId: agentData.agentId,
+        agentName: agentData.agentName,
+        language: agentData.language,
+        webhookUrl: agentData.postCallAnalysis.webhookUrl, // Using postCallAnalysis webhook as the main one if aligned
+        webhookTimeoutMs: agentData.postCallAnalysis.webhookTimeout,
+        
+        maxCallDurationMs: agentData.maxCallDurationMs,
+        ringTimeOutMs: agentData.ringTimeOutMs,
+        noResponseTimeoutMs: agentData.noResponseTimeoutMs,
+        ivrhangup: agentData.ivrhangup,
+        reEngageAttempts: agentData.reEngageAttempts,
+        reEngageMessage: agentData.reEngageMessage,
+        waitDurationMs: agentData.waitDurationMs,
+        userGreetingType: agentData.userGreetingType as any,
+
+        ttsConfig: agentData.ttsConfig,
+        sttConfig: agentData.sttConfig,
+        
+        postCallAnalysisData: agentData.postCallAnalysis.extractionItems.filter(i => i.enabled).map(item => ({
+             name: item.name,
+             description: item.description,
+             type: item.type === 'selector' ? 'enum' : item.type === 'text' ? 'string' : item.type,
+             choices: item.options
+        })),
+
+        enableVoicemailDetection: agentData.voicemailDetection.enabled,
+        voiceMailDetection: {
+             action: {
+                 type: agentData.voicemailDetection.action,
+                 text: agentData.voicemailDetection.message // Assuming 'text' field carries the message
+             } as any
+        },
+
+        version: agentData.versionMetadata.version,
+        isPublished: true,
+        versionDescription: publishData?.description || agentData.versionMetadata.versionDescription,
+        
+        responseEngine: {
+            type: 'REACHERR_LLM',
+            llmId: agentData.reacherrLlmData.llmId
+        }
+      };
+
+      const updatePromises: Promise<any>[] = [];
+      updatePromises.push(updateVoiceAgent(agentData.agentId, payload));
+
+      // Handle Phone Number Assignment if publishData is present
+      if (publishData) {
+        const { inboundEnabled, selectedInbound, outboundEnabled, selectedOutbound } = publishData;
+        const updates = new Map<string, { inboundAgentId?: string | null; outboundAgentId?: string | null }>();
+
+        // 1. Identify current assignments to clear them if they changed
+        phoneList.forEach(p => {
+          if (p.inboundAgentId === agentData.agentId || p.outboundAgentId === agentData.agentId) {
+            const num = p.phoneNumber;
+            const update = updates.get(num) || {};
+            
+            if (p.inboundAgentId === agentData.agentId && (!inboundEnabled || selectedInbound !== num)) {
+              update.inboundAgentId = null;
+            }
+            if (p.outboundAgentId === agentData.agentId && (!outboundEnabled || selectedOutbound !== num)) {
+              update.outboundAgentId = null;
+            }
+            
+            if (Object.keys(update).length > 0) {
+              updates.set(num, update);
+            }
+          }
+        });
+
+        // 2. Set new assignments (will overwrite clearings if the same number is reused)
+        if (inboundEnabled && selectedInbound) {
+          const update = updates.get(selectedInbound) || {};
+          update.inboundAgentId = agentData.agentId;
+          updates.set(selectedInbound, update);
+        }
+        if (outboundEnabled && selectedOutbound) {
+          const update = updates.get(selectedOutbound) || {};
+          update.outboundAgentId = agentData.agentId;
+          updates.set(selectedOutbound, update);
+        }
+
+        // 3. Queue updates for numbers that actually changed
+        for (const [phoneNumber, data] of updates.entries()) {
+          const current = phoneList.find(p => p.phoneNumber === phoneNumber);
+          const hasInboundChange = 'inboundAgentId' in data && (data.inboundAgentId ?? null) !== (current?.inboundAgentId ?? null);
+          const hasOutboundChange = 'outboundAgentId' in data && (data.outboundAgentId ?? null) !== (current?.outboundAgentId ?? null);
+
+          if (hasInboundChange || hasOutboundChange) {
+            updatePromises.push(updatePhoneNumber(phoneNumber, data as any));
+          }
+        }
+      }
+
+      await Promise.all(updatePromises);
+      await fetchPhones(); // Refresh phone list to reflect changes in UI
+
+      addToast('Agent published successfully!', 'success');
+      setIsLaunchModalOpen(false); // Close the modal
     } catch (err: any) {
-      addToast('Error saving agent', 'error');
+      console.error(err);
+      addToast('Error publishing agent', 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
   const renderTabContent = () => {
-    if (isLoading) return <Skeleton className="h-full w-full rounded-3xl" />;
+    if (isLoading || isConfigLoading || !appCapabilities) return <Skeleton className="h-full w-full rounded-3xl" />;
     switch (activeTab) {
       case 'agent': return <AgentForm data={derivedAgentFormData} onChange={handleAgentFormChange} />;
       case 'llm': return <LLMSettingsForm data={derivedLLMData} onChange={handleLLMChange} availableKBs={[]} capabilities = {appCapabilities.llm} />;
@@ -704,11 +792,13 @@ const CreateAgentPage: React.FC = () => {
       {isLaunchModalOpen && (
         <LaunchAgentModal 
           data={agentData.versionMetadata}
+          agentId={agentData.agentId}
+          phoneList={phoneList}
           onClose={() => setIsLaunchModalOpen(false)}
           onPublish={(finalData: any) => {
             // Logic to hit your /agent/save or publish API
             console.log(finalData)
-            handleSubmit();
+            handleSubmit(finalData);
           }}
         />
       )}

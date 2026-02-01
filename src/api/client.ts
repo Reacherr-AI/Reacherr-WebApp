@@ -1,6 +1,6 @@
 import axios from 'axios';
 // import { globalLogout } from '../context/AuthContext';
-import { ReacherrLLM, S3Meta, Template, VoiceAgent } from '../types';
+import { PhoneNumber, ReacherrLLM, S3Meta, Template, VoiceAgent } from '../types';
 
 export const API_URL = 'http://localhost:8080/';
 
@@ -83,8 +83,10 @@ export const getTemplates = (): Promise<{ data: Template[] }> => {
   return apiClient.get('/api/v1/templates');
 };
 
-export const getAllAgentsData = () => {
-  return apiClient.get(`/api/v1/list-agent-dashboard`);
+export const getAllAgentsData = (page: number = 0, size: number = 10) => {
+  return apiClient.get(`/api/v1/list-agent-dashboard`, { 
+    params: { page, size } 
+  });
 };
 
 
@@ -151,6 +153,22 @@ export const updateReacherrLlm = (llmId: string, data: Partial<ReacherrLLM>) => 
 
 export const createVoiceAgent = (data: Partial<VoiceAgent>) => {
   return apiClient.post<VoiceAgent>(`/api/v1/create-voice-agent`, data);
+};
+
+export const updateVoiceAgent = (agentId: string, data: Partial<VoiceAgent>) => {
+  return apiClient.patch<VoiceAgent>(`/api/v1/publish-voice-agent/${agentId}`, data);
+};
+
+export const getVoiceAgent = (agentId: string) => {
+  return apiClient.get<VoiceAgent>(`/api/v1/get-voice-agent/${agentId}`);
+};
+
+export const listPhoneNumber = () => {
+  return apiClient.post<PhoneNumber[]>(`/api/v1/list-phone-number`);
+};
+
+export const updatePhoneNumber = (phoneNumber: string, data: Partial<PhoneNumber>) => {
+  return apiClient.post<PhoneNumber>(`/api/v1/update-phone-number/${phoneNumber}`, { ...data, phoneNumber });
 };
 
 export default apiClient;

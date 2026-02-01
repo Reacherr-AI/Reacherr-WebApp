@@ -5,7 +5,7 @@ const CallieLogoAnimated: React.FC<{ className?: string }> = ({ className = "" }
     <div className={`flex flex-col items-center ${className}`}>
       {/* Callie Text Logo */}
       <div className="text-4xl md:text-5xl font-light text-white mb-4 tracking-wide">
-        Callie
+        Reacherr AI
       </div>
       
       {/* Animated Sound Wave */}

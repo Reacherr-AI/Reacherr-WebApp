@@ -1,15 +1,13 @@
-import React, { createContext, useState, useEffect, ReactNode, useContext, useCallback } from 'react';
+import { AgentSummary } from '@/types/agentList';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 import { getAllAgentsData } from '../api/client';
 import { useAuth } from './AuthContext';
-import { Message } from '@/types/chat';
-import { AgentSummary } from '@/types/agentList';
 
-interface ChatHistories {
-  [agentId: string]: Message[];
-}
-
-interface ChatSessions {
-  [agentId: string]: string;
+interface PaginationState {
+  page: number;
+  size: number;
+  totalPages: number;
+  totalElements: number;
 }
 
 interface AppContextType {
@@ -17,13 +15,8 @@ interface AppContextType {
   agents: AgentSummary[]; 
   loading: boolean;
   error: string | null;
-  fetchAgents: () => Promise<void>;
-  chatHistories: ChatHistories;
-  chatSessions: ChatSessions;
-  addMessageToHistory: (agentId: string, message: Message) => void;
-  updateLastMessageInHistory: (agentId: string, chunk: string) => void;
-  setSessionIdForAgent: (agentId: string, sessionId: string) => void;
-  clearChatForAgent: (agentId: string) => void;
+  fetchAgents: (page?: number, size?: number) => Promise<void>;
+  pagination: PaginationState;
   isProfileModalOpen: boolean;
   setIsProfileModalOpen: (isOpen: boolean) => void;
 }
@@ -35,25 +28,42 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   
   // Refactored state initialization
   const [agents, setAgents] = useState<AgentSummary[]>([]); 
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 0,
+    size: 10,
+    totalPages: 0,
+    totalElements: 0
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Preserved chat and UI states
-  const [chatHistories, setChatHistories] = useState<ChatHistories>({});
-  const [chatSessions, setChatSessions] = useState<ChatSessions>({});
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  /**
-   * Refactored fetch logic to match backend AgentSummary
-   */
 
-  const fetchAgents = useCallback(async () => {
+  const fetchAgents = useCallback(async (page: number = 0, size: number = 10) => {
     if (!user) return;
     setLoading(true);
     try {
-      const response = await getAllAgentsData();
-      // Directly setting the data array from backend
-      setAgents(response.data);
+      const response = await getAllAgentsData(page, size);
+      
+      // Handle potential Page<T> vs List<T> response
+      if (Array.isArray(response.data)) {
+        setAgents(response.data);
+        // Fallback for raw list response - we don't know total pages
+        setPagination({ page, size, totalPages: 0, totalElements: 0 });
+      } else if (response.data && response.data.content) {
+        // Standard Spring Page response
+        setAgents(response.data.content);
+        setPagination({
+          page: response.data.number ?? page,
+          size: response.data.size ?? size,
+          totalPages: response.data.totalPages ?? 0,
+          totalElements: response.data.totalElements ?? 0
+        });
+      } else {
+        // Fallback if structure is unexpected
+        setAgents([]);
+      }
+      
       setError(null);
     } catch (err) {
       setError('Failed to fetch agents.');
@@ -62,46 +72,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     }
   }, [user]);
-
-  // --- Preserved Logic for Chat and Sessions ---
-
-  const addMessageToHistory = (agentId: string, message: Message) => {
-    setChatHistories(prev => ({
-      ...prev,
-      [agentId]: [...(prev[agentId] || []), message],
-    }));
-  };
-
-  const updateLastMessageInHistory = (agentId: string, chunk: string) => {
-    setChatHistories(prev => {
-      const history = prev[agentId] || [];
-      if (history.length === 0) return prev;
-      const lastMessage = history[history.length - 1];
-      const updatedLastMessage = { ...lastMessage, text: lastMessage.text + chunk };
-      return {
-        ...prev,
-        [agentId]: [...history.slice(0, -1), updatedLastMessage],
-      };
-    });
-  };
-
-  const setSessionIdForAgent = (agentId: string, sessionId: string) => {
-    setChatSessions(prev => ({ ...prev, [agentId]: sessionId }));
-  };
-
-  const clearChatForAgent = (agentId: string) => {
-    setChatSessions(prev => {
-      const newSessions = { ...prev };
-      delete newSessions[agentId];
-      return newSessions;
-    });
-    setChatHistories(prev => {
-      const newHistories = { ...prev };
-      delete newHistories[agentId];
-      return newHistories;
-    });
-  };
-
   return (
     <AppContext.Provider
       value={{
@@ -109,12 +79,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         loading,
         error,
         fetchAgents,
-        chatHistories,
-        chatSessions,
-        addMessageToHistory,
-        updateLastMessageInHistory,
-        setSessionIdForAgent,
-        clearChatForAgent,
+        pagination,
         isProfileModalOpen,
         setIsProfileModalOpen
       }}

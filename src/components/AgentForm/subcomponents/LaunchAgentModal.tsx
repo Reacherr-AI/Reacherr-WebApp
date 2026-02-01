@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Rocket, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Rocket, X, Loader2 } from "lucide-react";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
@@ -12,17 +12,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/ui/select";
+import { PhoneNumber } from "@/types";
 
 interface LaunchModalProps {
   data: any;
-  phoneNumbers: Record<number, string>;
+  agentId: string;
+  phoneList: PhoneNumber[];
   onClose: () => void;
   onPublish: (payload: any) => void;
 }
 
 const LaunchAgentModal: React.FC<LaunchModalProps> = ({
   data,
-  phoneNumbers,
+  agentId,
+  phoneList,
   onClose,
   onPublish,
 }) => {
@@ -32,14 +35,28 @@ const LaunchAgentModal: React.FC<LaunchModalProps> = ({
   const [outboundEnabled, setOutboundEnabled] = useState(false);
   const [selectedInbound, setSelectedInbound] = useState<string>("");
   const [selectedOutbound, setSelectedOutbound] = useState<string>("");
+  
+  // Hydrate form when phoneList is available
+  useEffect(() => {
+    if (phoneList.length > 0 && agentId) {
+      // Hydrate Inbound
+      const inboundMatch = phoneList.find(p => p.inboundAgentId === agentId);
+      if (inboundMatch) {
+        setInboundEnabled(true);
+        setSelectedInbound(inboundMatch.phoneNumber);
+      }
 
-  const phoneOptions = [
-    { id: "phone-01", num: "+91 00000 00000" },
-    { id: "phone-02", num: "+91 99999 99999" },
-  ];
+      // Hydrate Outbound
+      const outboundMatch = phoneList.find(p => p.outboundAgentId === agentId);
+      if (outboundMatch) {
+        setOutboundEnabled(true);
+        setSelectedOutbound(outboundMatch.phoneNumber);
+      }
+    }
+  }, [phoneList, agentId]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-[500px] bg-white rounded-[28px] border border-zinc-100 shadow-2xl">
         
         {/* HEADER */}
@@ -78,15 +95,16 @@ const LaunchAgentModal: React.FC<LaunchModalProps> = ({
           {/* PHONE SELECTION */}
           <div className="space-y-3">
             <Label>Select Phone Number</Label>
-
+            
             {/* INBOUND */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Checkbox
                   checked={inboundEnabled}
                   onCheckedChange={(v) => setInboundEnabled(!!v)}
+                  id="inbound-check"
                 />
-                <Label>Inbound phone number</Label>
+                <Label htmlFor="inbound-check" className="cursor-pointer">Inbound phone number</Label>
               </div>
 
               {inboundEnabled && (
@@ -97,11 +115,11 @@ const LaunchAgentModal: React.FC<LaunchModalProps> = ({
                   <SelectContent
                     position="popper"
                     sideOffset={6}
-                    className="z-[999]"
+                    className="z-[999] max-h-[200px]"
                   >
-                    {phoneOptions.map((opt) => (
-                      <SelectItem key={opt.id} value={opt.id}>
-                        {opt.num}
+                    {phoneList.map((opt) => (
+                      <SelectItem key={opt.phoneNumber} value={opt.phoneNumber}>
+                        {opt.nickname || opt.phoneNumber} <span className="text-zinc-400 text-xs ml-2">({opt.phoneNumber})</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -115,8 +133,9 @@ const LaunchAgentModal: React.FC<LaunchModalProps> = ({
                 <Checkbox
                   checked={outboundEnabled}
                   onCheckedChange={(v) => setOutboundEnabled(!!v)}
+                  id="outbound-check"
                 />
-                <Label>Outbound phone number</Label>
+                <Label htmlFor="outbound-check" className="cursor-pointer">Outbound phone number</Label>
               </div>
 
               {outboundEnabled && (
@@ -128,11 +147,11 @@ const LaunchAgentModal: React.FC<LaunchModalProps> = ({
                   <SelectContent
                     position="popper"
                     sideOffset={6}
-                    className="z-[999]"
+                    className="z-[999] max-h-[200px]"
                   >
-                    {phoneOptions.map((opt) => (
-                      <SelectItem key={opt.id} value={opt.id}>
-                        {opt.num}
+                      {phoneList.map((opt) => (
+                      <SelectItem key={opt.phoneNumber} value={opt.phoneNumber}>
+                        {opt.nickname || opt.phoneNumber} <span className="text-zinc-400 text-xs ml-2">({opt.phoneNumber})</span>
                       </SelectItem>
                     ))}
                   </SelectContent>

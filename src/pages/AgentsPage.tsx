@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   PlusCircle, Pencil, Play, Pause, Search, 
-  MoreVertical, Phone, Mic, ChevronRight, 
+  MoreVertical, Phone, Mic, ChevronRight, ChevronLeft,
   Download, Copy, Trash2 
 } from 'lucide-react';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
@@ -11,15 +11,20 @@ import CreateAgentModal from '../components/modals/CreateAgentModal';
 import { AgentSummary } from '@/types/agentList';
 
 const AgentsPage: React.FC = () => {
-  const { agents, loading, error, fetchAgents } = useAppContext();
+  const { agents, loading, error, fetchAgents, pagination } = useAppContext();
   const { playing, playingId, togglePlay } = useAudioPlayer();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAgents();
   }, [fetchAgents]);
+
+  const handlePageChange = (newPage: number) => {
+    fetchAgents(newPage, pagination.size);
+  };
 
   /**
    * UPDATED: Formats timestamp to include Date and Time as shown in Retell
@@ -43,7 +48,7 @@ const AgentsPage: React.FC = () => {
   }, [agents, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-white animate-in fade-in duration-300">
+    <div className="min-h-screen bg-white animate-in fade-in duration-300 pb-10">
       {/* 1. Header with expanded minimal buttons */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-zinc-100">
         <div className="flex items-center gap-2 text-sm font-semibold">
@@ -94,7 +99,8 @@ const AgentsPage: React.FC = () => {
           {filteredAgents.map((agent) => (
             <div 
               key={agent.agentId}
-              className="grid grid-cols-12 gap-4 items-center px-4 py-3 bg-white hover:bg-zinc-50/80 transition-colors group relative border-b border-zinc-50 last:border-0"
+              onClick={() => navigate(`/agents/${agent.agentId}`)}
+              className="grid grid-cols-12 gap-4 items-center px-4 py-3 bg-white hover:bg-zinc-50/80 transition-colors group relative border-b border-zinc-50 last:border-0 cursor-pointer"
             >
               <div className="col-span-4 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-md bg-zinc-50 flex items-center justify-center border border-zinc-100 text-emerald-500">
@@ -120,7 +126,10 @@ const AgentsPage: React.FC = () => {
                 />
                 <span className="text-[12px] text-zinc-600 font-medium">Cimo</span>
                 <button
-                  onClick={() => togglePlay(agent.voiceAvatarUrl, agent.agentId)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlay(agent.voiceAvatarUrl, agent.agentId);
+                  }}
                   className="text-zinc-300 hover:text-zinc-600 transition-colors"
                 >
                   {playing && playingId === agent.agentId ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
@@ -138,21 +147,31 @@ const AgentsPage: React.FC = () => {
                 </span>
                 
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Link to={`/agents/edit/${agent.agentId}`} className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors">
+                  <Link 
+                    to={`/agents/${agent.agentId}`} 
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
+                  >
                     <Pencil size={16} />
                   </Link>
                   
                   <div className="relative">
                     {/* INCREASED: Action button hit area and icon size */}
                     <button 
-                      onClick={() => setActiveMenu(activeMenu === agent.agentId ? null : agent.agentId)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenu(activeMenu === agent.agentId ? null : agent.agentId);
+                      }}
                       className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors rounded-md hover:bg-zinc-100"
                     >
                       <MoreVertical size={18} />
                     </button>
                     
                     {activeMenu === agent.agentId && (
-                      <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-zinc-200 rounded-lg shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-100">
+                      <div 
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 top-full mt-1 w-40 bg-white border border-zinc-200 rounded-lg shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-100"
+                      >
                         {/* INCREASED: Dropdown option text size and padding */}
                         <button className="w-full px-4 py-2 text-left text-[12px] font-semibold text-zinc-700 hover:bg-zinc-50 flex items-center gap-2.5">
                           <Download size={14} className="text-zinc-400" /> Export
@@ -171,6 +190,36 @@ const AgentsPage: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+        
+        {/* Pagination Footer */}
+        <div className="flex items-center justify-between py-4 mt-2">
+          <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+            {pagination.totalElements > 0 ? (
+               `Showing ${pagination.page * pagination.size + 1} - ${Math.min((pagination.page + 1) * pagination.size, pagination.totalElements)} of ${pagination.totalElements}`
+            ) : (
+               `Page ${pagination.page + 1}`
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page === 0 || loading}
+              className="h-8 px-3 border border-zinc-200 text-zinc-700 rounded-md text-xs font-bold hover:bg-zinc-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              <ChevronLeft size={14} /> Previous
+            </button>
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={
+                loading ||
+                (pagination.totalPages > 0 ? pagination.page >= pagination.totalPages - 1 : agents.length < pagination.size)
+              }
+              className="h-8 px-3 border border-zinc-200 text-zinc-700 rounded-md text-xs font-bold hover:bg-zinc-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              Next <ChevronRight size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
