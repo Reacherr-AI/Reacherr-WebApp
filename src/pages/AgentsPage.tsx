@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  PlusCircle, Pencil, Play, Pause, Search, 
-  MoreVertical, Phone, Mic, ChevronRight, 
-  Download, Copy, Trash2 
+import {
+  PlusCircle, Pencil, Play, Pause, Search,
+  MoreVertical, Phone, Mic, ChevronRight,
+  Download, Copy, Trash2
 } from 'lucide-react';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useAppContext } from '../context/AppContext';
@@ -16,10 +16,16 @@ const AgentsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     fetchAgents();
   }, [fetchAgents]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, agents]);
 
   /**
    * UPDATED: Formats timestamp to include Date and Time as shown in Retell
@@ -37,10 +43,28 @@ const AgentsPage: React.FC = () => {
   };
 
   const filteredAgents = useMemo(() => {
-    return (agents || []).filter(agent => 
+    return (agents || []).filter(agent =>
       agent.agentName?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [agents, searchQuery]);
+
+  const totalPages = useMemo(() => {
+    const count = Math.ceil(filteredAgents.length / pageSize);
+    return count === 0 ? 1 : count;
+  }, [filteredAgents.length]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const pagedAgents = filteredAgents.slice(startIndex, endIndex);
+  const totalAgents = filteredAgents.length;
+  const showingStart = totalAgents === 0 ? 0 : startIndex + 1;
+  const showingEnd = totalAgents === 0 ? 0 : Math.min(endIndex, totalAgents);
 
   return (
     <div className="min-h-screen bg-white animate-in fade-in duration-300">
@@ -50,11 +74,11 @@ const AgentsPage: React.FC = () => {
           <ChevronRight size={16} className="text-zinc-300" />
           <span className="text-zinc-900 text-base">All Agents</span>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-            <input 
+            <input
               type="text"
               placeholder="Search..."
               className="w-64 bg-white border border-zinc-200 text-zinc-900 pl-9 pr-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-zinc-300 transition-all placeholder:text-zinc-400 font-medium"
@@ -62,14 +86,14 @@ const AgentsPage: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          
+
           {/* INCREASED: Button size and hit area for Import */}
           <button className="h-9 px-5 border border-zinc-200 text-zinc-700 rounded-md text-xs font-bold hover:bg-zinc-50 transition-colors shadow-sm">
             Import
           </button>
-          
+
           {/* INCREASED: Button size for Create Agent */}
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="h-9 px-5 bg-zinc-950 hover:bg-zinc-800 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-all shadow-sm active:scale-95"
           >
@@ -91,8 +115,8 @@ const AgentsPage: React.FC = () => {
 
         {/* Floating Card List with Row Hover */}
         <div className="space-y-[1px] border border-zinc-100 rounded-lg overflow-hidden shadow-sm">
-          {filteredAgents.map((agent) => (
-            <div 
+          {pagedAgents.map((agent) => (
+            <div
               key={agent.agentId}
               className="grid grid-cols-12 gap-4 items-center px-4 py-3 bg-white hover:bg-zinc-50/80 transition-colors group relative border-b border-zinc-50 last:border-0"
             >
@@ -113,10 +137,10 @@ const AgentsPage: React.FC = () => {
               </div>
 
               <div className="col-span-2 flex items-center justify-center gap-2">
-                <img 
-                  src={agent.voiceAvatarUrl || '/default-avatar.png'} 
-                  className="w-5 h-5 rounded-full border border-zinc-200" 
-                  alt="" 
+                <img
+                  src={agent.voiceAvatarUrl || '/default-avatar.png'}
+                  className="w-5 h-5 rounded-full border border-zinc-200"
+                  alt=""
                 />
                 <span className="text-[12px] text-zinc-600 font-medium">Cimo</span>
                 <button
@@ -136,21 +160,21 @@ const AgentsPage: React.FC = () => {
                 <span className="text-[12px] text-zinc-500 tabular-nums font-medium mr-4">
                   {formatDateTime(agent.lastUpdatedAt)}
                 </span>
-                
+
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Link to={`/agents/edit/${agent.agentId}`} className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors">
                     <Pencil size={16} />
                   </Link>
-                  
+
                   <div className="relative">
                     {/* INCREASED: Action button hit area and icon size */}
-                    <button 
+                    <button
                       onClick={() => setActiveMenu(activeMenu === agent.agentId ? null : agent.agentId)}
                       className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors rounded-md hover:bg-zinc-100"
                     >
                       <MoreVertical size={18} />
                     </button>
-                    
+
                     {activeMenu === agent.agentId && (
                       <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-zinc-200 rounded-lg shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-100">
                         {/* INCREASED: Dropdown option text size and padding */}
@@ -173,6 +197,35 @@ const AgentsPage: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-6 py-4 text-xs text-zinc-500">
+          <div className="font-medium">
+            Showing {showingStart}–{showingEnd} of {totalAgents}
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                className="h-8 px-3 border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+              >
+                Prev
+              </button>
+              <button
+                className="h-8 px-3 border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CreateAgentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
