@@ -1,6 +1,14 @@
 import axios from 'axios';
 // import { globalLogout } from '../context/AuthContext';
-import { PhoneNumber, ReacherrLLM, S3Meta, Template, VoiceAgent } from '../types';
+import {
+  AvailableNumberRequest,
+  AvailableNumberResponse,
+  PhoneNumber,
+  ReacherrLLM,
+  S3Meta,
+  Template,
+  VoiceAgent
+} from '../types';
 
 export const API_URL = 'http://localhost:8080/';
 
@@ -165,6 +173,16 @@ export const getVoiceAgent = (agentId: string) => {
 
 export const listPhoneNumber = () => {
   return apiClient.post<PhoneNumber[]>(`/api/v1/list-phone-number`);
+};
+
+export const listAvailableNumbers = (data: AvailableNumberRequest, page: number = 0, size: number = 10) => {
+  return apiClient.post<AvailableNumberResponse>(`/api/v1/list-available-numbers`, data, {
+    params: { page, size }
+  });
+};
+
+export const createPhoneNumber = (data: Partial<PhoneNumber>) => {
+  return apiClient.post<PhoneNumber>(`/api/v1/create-phone-number`, data);
 };
 
 export const updatePhoneNumber = (phoneNumber: string, data: Partial<PhoneNumber>) => {

@@ -6,6 +6,7 @@ import AgentsPage from './pages/AgentsPage';
 import AuthPage from './pages/AuthPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AuthCallback from './pages/AuthCallback';
+import PhoneNumbersPage from './pages/PhoneNumbersPage';
 
 const App: React.FC = () => {
   return (
@@ -16,6 +17,7 @@ const App: React.FC = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/agents" element={<AgentsPage />} />
           <Route path="/agents/:agentId" element={<CreateAgentPage />} />
+          <Route path="/phoneNumbers" element={<PhoneNumbersPage />} />
         </Route>
       </Route>
 

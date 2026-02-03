@@ -129,6 +129,18 @@ export interface PhoneNumber {
     sipTrunkConfig?: SipTrunk;
 }
 
+export interface AvailableNumberRequest {
+    countryCode: CountryCodeType;
+    provider: PhoneNumberType;
+    contains?: string;
+    isTollFree: boolean;
+}
+
+export interface AvailableNumberResponse {
+    numbers: string[];
+    last: boolean;
+}
+
 
 // --- Voice Agent Core ---
 

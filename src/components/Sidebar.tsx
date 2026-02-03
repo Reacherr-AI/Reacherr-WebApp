@@ -3,6 +3,7 @@ import {
   HelpCircle,
   PanelLeftClose,
   PanelLeftOpen,
+  Phone,
   Users
 } from 'lucide-react';
 import React, { useContext, useState } from 'react';
@@ -95,6 +96,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onClose }) => {
           <NavLink to="/agents" className={navLinkClasses} onClick={onClose}>
             <Users className={cn("h-5 w-5 shrink-0", !isCollapsed && "mr-3")} />
             {!isCollapsed && <span className="animate-in slide-in-from-left-2">Agents</span>}
+          </NavLink>
+        </div>
+
+        {/* DEPLOY SECTION */}
+        <div className="mb-4">
+          <SectionHeader title="Deploy" />
+          <NavLink to="/phoneNumbers" className={navLinkClasses} onClick={onClose}>
+            <Phone className={cn("h-5 w-5 shrink-0", !isCollapsed && "mr-3")} />
+            {!isCollapsed && <span className="animate-in slide-in-from-left-2">Phone Numbers</span>}
           </NavLink>
         </div>
 
