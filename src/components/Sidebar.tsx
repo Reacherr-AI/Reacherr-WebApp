@@ -12,7 +12,12 @@ import UserMenu from '@/components/userMenu';
 import { AuthContext } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
-const Sidebar: React.FC = () => {
+type SidebarProps = {
+  isMobileOpen: boolean;
+  onClose: () => void;
+};
+
+const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onClose }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const auth = useContext(AuthContext);
 
@@ -25,32 +30,42 @@ const Sidebar: React.FC = () => {
       isActive
         ? "bg-gray-700 text-white"
         : "text-gray-400 hover:bg-gray-800 hover:text-white",
-      isCollapsed ? "justify-center px-0" : "px-4"
+      isCollapsed ? "lg:justify-center lg:px-0" : "px-4"
     );
 
   // Helper for Section Headers
   const SectionHeader = ({ title }: { title: string }) => (
     <h4 className={cn(
       "px-4 mb-2 mt-6 text-[10px] font-bold uppercase tracking-widest text-gray-500 transition-opacity duration-300",
-      isCollapsed ? "opacity-0 h-0 mt-0" : "opacity-100"
+      isCollapsed ? "lg:opacity-0 lg:h-0 lg:mt-0" : "opacity-100"
     )}>
       {title}
     </h4>
   );
 
   return (
-    <aside 
-      className={cn(
-        "relative flex flex-col bg-[#0f1115] min-h-screen border-r border-gray-800 transition-all duration-300 ease-in-out z-50",
-        isCollapsed ? "w-20" : "w-64"
-      )}
-    >
+    <>
+      <div
+        onClick={onClose}
+        className={cn(
+          "fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity",
+          isMobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+      />
+      <aside 
+        className={cn(
+          "fixed inset-y-0 left-0 flex flex-col bg-[#0f1115] min-h-screen border-r border-gray-800 transition-all duration-300 ease-in-out z-50",
+          "lg:static lg:translate-x-0",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          isCollapsed ? "w-64 lg:w-20" : "w-64"
+        )}
+      >
       {/* 1. TOP HEADER: Brand & Toggle */}
       <div className={cn(
         "flex items-center justify-between px-6 py-6 border-b border-gray-800/50",
-        isCollapsed && "px-0 justify-center"
+        isCollapsed && "lg:px-0 lg:justify-center"
       )}>
-        {!isCollapsed && (
+        {(!isCollapsed || isMobileOpen) && (
           <div className="animate-in fade-in duration-500">
             <h1 className="text-xl font-bold text-white tracking-tight leading-none">Reacherr AI</h1>
             <p className="text-[10px] font-medium text-gray-500 mt-1 uppercase tracking-wider">
@@ -62,7 +77,7 @@ const Sidebar: React.FC = () => {
         <button 
           onClick={toggleSidebar}
           className={cn(
-            "p-2 rounded-md text-gray-500 hover:text-white hover:bg-gray-800 transition-colors",
+            "hidden lg:inline-flex p-2 rounded-md text-gray-500 hover:text-white hover:bg-gray-800 transition-colors",
             isCollapsed ? "mt-2" : ""
           )}
           title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
@@ -77,7 +92,7 @@ const Sidebar: React.FC = () => {
         {/* BUILD SECTION */}
         <div className="mb-4">
           <SectionHeader title="Build" />
-          <NavLink to="/agents" className={navLinkClasses}>
+          <NavLink to="/agents" className={navLinkClasses} onClick={onClose}>
             <Users className={cn("h-5 w-5 shrink-0", !isCollapsed && "mr-3")} />
             {!isCollapsed && <span className="animate-in slide-in-from-left-2">Agents</span>}
           </NavLink>
@@ -101,7 +116,8 @@ const Sidebar: React.FC = () => {
           </a>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 
