@@ -50,33 +50,33 @@ const AgentsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white animate-in fade-in duration-300 pb-10">
       {/* 1. Header with expanded minimal buttons */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-zinc-100">
+      <div className="flex flex-col gap-3 px-4 py-3 border-b border-zinc-100 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <ChevronRight size={16} className="text-zinc-300" />
           <span className="text-zinc-900 text-base">All Agents</span>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
             <input 
               type="text"
               placeholder="Search..."
-              className="w-64 bg-white border border-zinc-200 text-zinc-900 pl-9 pr-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-zinc-300 transition-all placeholder:text-zinc-400 font-medium"
+              className="w-full sm:w-64 bg-white border border-zinc-200 text-zinc-900 pl-9 pr-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-zinc-300 transition-all placeholder:text-zinc-400 font-medium"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           
           {/* INCREASED: Button size and hit area for Import */}
-          <button className="h-9 px-5 border border-zinc-200 text-zinc-700 rounded-md text-xs font-bold hover:bg-zinc-50 transition-colors shadow-sm">
+          <button className="h-9 w-full px-5 border border-zinc-200 text-zinc-700 rounded-md text-xs font-bold hover:bg-zinc-50 transition-colors shadow-sm sm:w-auto">
             Import
           </button>
           
           {/* INCREASED: Button size for Create Agent */}
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="h-9 px-5 bg-zinc-950 hover:bg-zinc-800 text-white rounded-md flex items-center gap-2 text-xs font-bold transition-all shadow-sm active:scale-95"
+            className="h-9 w-full px-5 bg-zinc-950 hover:bg-zinc-800 text-white rounded-md flex items-center justify-center gap-2 text-xs font-bold transition-all shadow-sm active:scale-95 sm:w-auto"
           >
             <PlusCircle size={15} />
             Create Agent
@@ -84,9 +84,9 @@ const AgentsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="px-6 pt-4">
+      <div className="px-4 pt-4 sm:px-6">
         {/* Table Headings */}
-        <div className="grid grid-cols-12 gap-4 px-4 py-2 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+        <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
           <div className="col-span-4">Agent Name</div>
           <div className="col-span-2 text-center">Agent Type</div>
           <div className="col-span-2 text-center">Voice</div>
@@ -100,9 +100,9 @@ const AgentsPage: React.FC = () => {
             <div 
               key={agent.agentId}
               onClick={() => navigate(`/agents/${agent.agentId}`)}
-              className="grid grid-cols-12 gap-4 items-center px-4 py-3 bg-white hover:bg-zinc-50/80 transition-colors group relative border-b border-zinc-50 last:border-0 cursor-pointer"
+              className="grid grid-cols-1 gap-3 px-4 py-3 bg-white hover:bg-zinc-50/80 transition-colors group relative border-b border-zinc-50 last:border-0 cursor-pointer md:grid-cols-12 md:items-center md:gap-4"
             >
-              <div className="col-span-4 flex items-center gap-3">
+              <div className="md:col-span-4 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-md bg-zinc-50 flex items-center justify-center border border-zinc-100 text-emerald-500">
                   <Mic size={15} />
                 </div>
@@ -112,13 +112,13 @@ const AgentsPage: React.FC = () => {
                 </h3>
               </div>
 
-              <div className="col-span-2 flex justify-center">
+              <div className="hidden md:flex md:col-span-2 justify-center">
                 <span className="px-3 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-50 text-zinc-500 border border-zinc-100 capitalize">
                   {agent.agentType?.replace('-', ' ')}
                 </span>
               </div>
 
-              <div className="col-span-2 flex items-center justify-center gap-2">
+              <div className="hidden md:flex md:col-span-2 items-center justify-center gap-2">
                 <img 
                   src={agent.voiceAvatarUrl || '/default-avatar.png'} 
                   className="w-5 h-5 rounded-full border border-zinc-200" 
@@ -136,12 +136,12 @@ const AgentsPage: React.FC = () => {
                 </button>
               </div>
 
-              <div className="col-span-2 text-[12px] text-zinc-400 text-center">
+              <div className="hidden md:block md:col-span-2 text-[12px] text-zinc-400 text-center">
                 {agent.phoneNumbers?.[0] || '—'}
               </div>
 
               {/* Timestamp and Action Menu */}
-              <div className="col-span-2 flex items-center justify-end">
+              <div className="hidden md:flex md:col-span-2 items-center justify-end">
                 <span className="text-[12px] text-zinc-500 tabular-nums font-medium mr-4">
                   {formatDateTime(agent.lastUpdatedAt)}
                 </span>
@@ -188,12 +188,84 @@ const AgentsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Mobile meta */}
+              <div className="flex flex-wrap items-center gap-3 text-[11px] text-zinc-500 md:hidden">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-50 text-zinc-500 border border-zinc-100 capitalize">
+                  {agent.agentType?.replace('-', ' ')}
+                </span>
+                <div className="flex items-center gap-2">
+                  <img 
+                    src={agent.voiceAvatarUrl || '/default-avatar.png'} 
+                    className="w-4 h-4 rounded-full border border-zinc-200" 
+                    alt="" 
+                  />
+                  <span className="text-[11px] text-zinc-500 font-medium">Cimo</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePlay(agent.voiceAvatarUrl, agent.agentId);
+                    }}
+                    className="text-zinc-300 hover:text-zinc-600 transition-colors"
+                  >
+                    {playing && playingId === agent.agentId ? <Pause size={12} fill="currentColor" /> : <Play size={12} fill="currentColor" />}
+                  </button>
+                </div>
+                <span className="text-[11px] text-zinc-400">
+                  {agent.phoneNumbers?.[0] || '—'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between md:hidden border-t border-zinc-100 pt-2">
+                <span className="text-[11px] text-zinc-500 tabular-nums font-medium">
+                  {formatDateTime(agent.lastUpdatedAt)}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Link 
+                    to={`/agents/${agent.agentId}`} 
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
+                  >
+                    <Pencil size={16} />
+                  </Link>
+                  
+                  <div className="relative">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenu(activeMenu === agent.agentId ? null : agent.agentId);
+                      }}
+                      className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors rounded-md hover:bg-zinc-100"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+                    
+                    {activeMenu === agent.agentId && (
+                      <div 
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 top-full mt-1 w-40 bg-white border border-zinc-200 rounded-lg shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-100"
+                      >
+                        <button className="w-full px-4 py-2 text-left text-[12px] font-semibold text-zinc-700 hover:bg-zinc-50 flex items-center gap-2.5">
+                          <Download size={14} className="text-zinc-400" /> Export
+                        </button>
+                        <button className="w-full px-4 py-2 text-left text-[12px] font-semibold text-zinc-700 hover:bg-zinc-50 flex items-center gap-2.5">
+                          <Copy size={14} className="text-zinc-400" /> Duplicate
+                        </button>
+                        <div className="my-1 border-t border-zinc-100" />
+                        <button className="w-full px-4 py-2 text-left text-[12px] font-semibold text-red-500 hover:bg-red-50 flex items-center gap-2.5">
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
         
         {/* Pagination Footer */}
-        <div className="flex items-center justify-between py-4 mt-2">
+        <div className="flex flex-col gap-3 py-4 mt-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
             {pagination.totalElements > 0 ? (
                `Showing ${pagination.page * pagination.size + 1} - ${Math.min((pagination.page + 1) * pagination.size, pagination.totalElements)} of ${pagination.totalElements}`
@@ -201,11 +273,11 @@ const AgentsPage: React.FC = () => {
                `Page ${pagination.page + 1}`
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <button
               onClick={() => handlePageChange(pagination.page - 1)}
               disabled={pagination.page === 0 || loading}
-              className="h-8 px-3 border border-zinc-200 text-zinc-700 rounded-md text-xs font-bold hover:bg-zinc-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              className="h-8 w-full px-3 border border-zinc-200 text-zinc-700 rounded-md text-xs font-bold hover:bg-zinc-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 sm:w-auto"
             >
               <ChevronLeft size={14} /> Previous
             </button>
@@ -215,7 +287,7 @@ const AgentsPage: React.FC = () => {
                 loading ||
                 (pagination.totalPages > 0 ? pagination.page >= pagination.totalPages - 1 : agents.length < pagination.size)
               }
-              className="h-8 px-3 border border-zinc-200 text-zinc-700 rounded-md text-xs font-bold hover:bg-zinc-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              className="h-8 w-full px-3 border border-zinc-200 text-zinc-700 rounded-md text-xs font-bold hover:bg-zinc-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 sm:w-auto"
             >
               Next <ChevronRight size={14} />
             </button>
