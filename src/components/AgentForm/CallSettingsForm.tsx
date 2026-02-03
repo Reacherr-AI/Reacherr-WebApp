@@ -5,12 +5,18 @@ import { Switch } from '@/ui/switch';
 import { Label } from '@/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/ui/radio-group';
 import { Textarea } from '@/ui/textarea';
+import { Input } from '@/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/select';
 import { cn } from '@/lib/utils';
-import { RefreshCcw, Voicemail, Timer, Info, PhoneOff } from 'lucide-react';
+import { Clock, MessageSquare, RefreshCcw, Voicemail, Timer, Info, PhoneOff } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui/Tooltip";
 
 const CallSettingsForm: React.FC<CallSettingsFormProps> = ({ data, onChange }) => {
-  
+
+  const isUserSpeaker = data.firstSpeaker === 'user';
+  const isAiStatic = data.firstSpeaker === 'ai';
+  const isStaticAllowed = isAiStatic || (isUserSpeaker && data.userGreetingType === 'static');
+
   const SectionHeader = ({ icon: Icon, title }: { icon: any, title: string }) => (
     <div className="flex items-center gap-2 mb-4">
       <div className="p-1.5 bg-blue-50/50 rounded-md border border-blue-100/30">
@@ -21,39 +27,109 @@ const CallSettingsForm: React.FC<CallSettingsFormProps> = ({ data, onChange }) =
   );
 
   return (
-    <div className="max-w-[1400px] mx-auto space-y-4 animate-in fade-in duration-500 pb-12">
-      
+    <div className="max-w-[1400px] mx-auto space-y-4 animate-in fade-in duration-500">
+
       {/* 1. COMPACT PAGE HEADER */}
       <div className="px-1 mb-2">
         <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Conversation Settings</h2>
         <p className="text-xs text-zinc-500 font-medium">Manage agent behavior for silence, voicemail, and automated systems.</p>
       </div>
 
+      {/* 1. CONVERSATION LOGIC */}
+      <section className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <SectionHeader icon={MessageSquare} title="Conversation Logic" />
+        <div className="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-5 space-y-2.5">
+            <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">First Speaker</Label>
+            <Select value={data.firstSpeaker} onValueChange={(val) => onChange('firstSpeaker', val)}>
+              <SelectTrigger className="h-11 bg-zinc-50/50 border-zinc-200 rounded-xl shadow-none focus:ring-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-zinc-100">
+                <SelectItem value="user">User speaks first</SelectItem>
+                <SelectItem value="ai">AI speaks first</SelectItem>
+                <SelectItem value="ai_dynamic">AI speaks with dynamic message</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="lg:col-span-7 space-y-2.5">
+            <Label className={cn("text-[10px] font-bold uppercase tracking-tight", isStaticAllowed ? "text-zinc-400" : "text-zinc-300")}>
+              Welcome Message
+            </Label>
+            <Input
+              name="welcomeMessage"
+              value={data.welcomeMessage}
+              onChange={(e) => onChange('welcomeMessage', e.target.value)}
+              placeholder={isStaticAllowed ? "e.g. Hello, how can I help?" : "Automated based on prompt"}
+              disabled={!isStaticAllowed}
+              className={cn(
+                "h-11 border-zinc-200 transition-all rounded-xl shadow-none",
+                isStaticAllowed ? "bg-white" : "bg-zinc-50 text-zinc-400 border-dashed"
+              )}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 2. BEHAVIORAL TIMING */}
+      <section className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <SectionHeader icon={Clock} title="Behavioral Timing" />
+        <div className="mt-4 bg-zinc-50/50 p-5 rounded-xl border border-zinc-100 space-y-5">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-zinc-600">Initiation Delay</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger><Info size={12} className="text-zinc-400" /></TooltipTrigger>
+                  <TooltipContent className="text-[10px] font-medium p-3 max-w-[200px] leading-relaxed">
+                    Milliseconds the AI waits before delivering the first greeting.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <span className="text-[10px] font-mono font-bold bg-zinc-900 text-white px-2 py-0.5 rounded shadow-sm">
+              {data.waitDuration} sec
+            </span>
+          </div>
+          <Slider
+            value={[data.waitDuration]}
+            max={30}
+            step={1}
+            onValueChange={(vals) => onChange('waitDuration', vals[0])}
+          />
+          <div className="flex justify-between text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">
+            <span>0</span>
+            <span>30</span>
+          </div>
+        </div>
+      </section>
+
       {/* 2. RE-ENGAGE SECTION */}
       <section className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all">
         <div className="flex items-center justify-between mb-5">
-            <SectionHeader icon={RefreshCcw} title="Re-engage & Silence Handling" />
-            <Switch className="scale-75" checked={data.reEngageEnabled} onCheckedChange={(val) => onChange('reEngageEnabled', val)} />
+          <SectionHeader icon={RefreshCcw} title="Re-engage & Silence Handling" />
+          <Switch className="scale-75" checked={data.reEngageEnabled} onCheckedChange={(val) => onChange('reEngageEnabled', val)} />
         </div>
 
         <div className={cn("grid grid-cols-1 lg:grid-cols-12 gap-6 transition-all", !data.reEngageEnabled && "opacity-40 grayscale-[0.5] pointer-events-none")}>
           <div className="lg:col-span-8 space-y-2.5">
-             <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">Silence Message</Label>
-             <Textarea 
-                value={data.reEngageMessage} 
-                onChange={(e) => onChange('reEngageMessage', e.target.value)}
-                placeholder="Message to play if user is silent..."
-                className="min-h-[100px] bg-zinc-50/30 border-zinc-200 resize-none text-sm leading-relaxed p-4 focus:bg-white transition-all rounded-xl"
-              />
+            <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">Silence Message</Label>
+            <Textarea
+              value={data.reEngageMessage}
+              onChange={(e) => onChange('reEngageMessage', e.target.value)}
+              placeholder="Message to play if user is silent..."
+              className="min-h-[100px] bg-zinc-50/30 border-zinc-200 resize-none text-sm leading-relaxed p-4 focus:bg-white transition-all rounded-xl"
+            />
           </div>
           <div className="lg:col-span-4 flex flex-col justify-end">
-             <div className="bg-zinc-50/50 p-5 rounded-xl border border-zinc-100">
-                <div className="flex justify-between items-center mb-4">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Attempts</label>
-                    <span className="text-[10px] font-mono font-bold text-zinc-600 bg-white border border-zinc-200 px-2 py-1 rounded shadow-sm">{data.reEngageAttempts}</span>
-                </div>
-                <Slider value={[data.reEngageAttempts]} min={1} max={5} step={1} onValueChange={(v) => onChange('reEngageAttempts' as any, v[0])} />
-             </div>
+            <div className="bg-zinc-50/50 p-5 rounded-xl border border-zinc-100">
+              <div className="flex justify-between items-center mb-4">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase">Attempts</label>
+                <span className="text-[10px] font-mono font-bold text-zinc-600 bg-white border border-zinc-200 px-2 py-1 rounded shadow-sm">{data.reEngageAttempts}</span>
+              </div>
+              <Slider value={[data.reEngageAttempts]} min={1} max={5} step={1} onValueChange={(v) => onChange('reEngageAttempts' as any, v[0])} />
+            </div>
           </div>
         </div>
       </section>
@@ -61,58 +137,58 @@ const CallSettingsForm: React.FC<CallSettingsFormProps> = ({ data, onChange }) =
       {/* 3. HORIZONTAL IVR HANGUP */}
       <section className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-zinc-50 rounded-xl border border-zinc-100">
-                    <PhoneOff size={18} className="text-zinc-400" />
-                </div>
-                <div className="space-y-0.5">
-                    <h3 className="text-sm font-bold text-zinc-800 tracking-tight">IVR & DTMF Hangup</h3>
-                    <p className="text-[11px] text-zinc-400 font-medium">Automatically end the call if an automated system or keypad input is detected.</p>
-                </div>
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-zinc-50 rounded-xl border border-zinc-100">
+              <PhoneOff size={18} className="text-zinc-400" />
             </div>
-            <Switch className="scale-75" checked={data.ivrHangupEnabled} onCheckedChange={(val) => onChange('ivrHangupEnabled' as any, val)} />
+            <div className="space-y-0.5">
+              <h3 className="text-sm font-bold text-zinc-800 tracking-tight">IVR & DTMF Hangup</h3>
+              <p className="text-[11px] text-zinc-400 font-medium">Automatically end the call if an automated system or keypad input is detected.</p>
+            </div>
+          </div>
+          <Switch className="scale-75" checked={data.ivrHangupEnabled} onCheckedChange={(val) => onChange('ivrHangupEnabled' as any, val)} />
         </div>
       </section>
 
       {/* 4. VOICEMAIL DETECTION LOGIC */}
       <section className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <div className="flex items-center justify-between mb-4">
-            <SectionHeader icon={Voicemail} title="Voicemail Logic" />
-            <Switch className="scale-75" checked={data.voicemailDetectionEnabled} onCheckedChange={(val) => onChange('voicemailDetectionEnabled', val)} />
+          <SectionHeader icon={Voicemail} title="Voicemail Logic" />
+          <Switch className="scale-75" checked={data.voicemailDetectionEnabled} onCheckedChange={(val) => onChange('voicemailDetectionEnabled', val)} />
         </div>
 
         {data.voicemailDetectionEnabled && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in slide-in-from-top-2">
             <div className="lg:col-span-4 space-y-3">
-               <Label className="text-[10px] font-bold text-zinc-400 uppercase">Detection Action</Label>
-               <RadioGroup value={data.voicemailAction} onValueChange={(val: any) => onChange('voicemailAction', val)} className="gap-2">
-                    <div className={cn("flex items-center space-x-2 p-2.5 rounded-lg border text-xs transition-all", data.voicemailAction === 'hangup' ? "bg-blue-50/30 border-blue-200" : "border-zinc-100")}>
-                        <RadioGroupItem value="hangup" id="hangup" className="scale-75" />
-                        <Label htmlFor="hangup" className="cursor-pointer font-medium text-zinc-700">Immediate Hangup</Label>
-                    </div>
-                    <div className={cn("flex items-center space-x-2 p-2.5 rounded-lg border text-xs transition-all", data.voicemailAction === 'static_text' ? "bg-blue-50/30 border-blue-200" : "border-zinc-100")}>
-                        <RadioGroupItem value="static_text" id="static_text" className="scale-75" />
-                        <Label htmlFor="static_text" className="cursor-pointer font-medium text-zinc-700">Static Text</Label>
-                    </div>
-                    <div className={cn("flex items-center space-x-2 p-2.5 rounded-lg border text-xs transition-all", data.voicemailAction === 'prompt' ? "bg-blue-50/30 border-blue-200" : "border-zinc-100")}>
-                        <RadioGroupItem value="prompt" id="prompt" className="scale-75" />
-                        <Label htmlFor="prompt" className="cursor-pointer font-medium text-zinc-700">AI Prompt</Label>
-                    </div>
-                </RadioGroup>
+              <Label className="text-[10px] font-bold text-zinc-400 uppercase">Detection Action</Label>
+              <RadioGroup value={data.voicemailAction} onValueChange={(val: any) => onChange('voicemailAction', val)} className="gap-2">
+                <div className={cn("flex items-center space-x-2 p-2.5 rounded-lg border text-xs transition-all", data.voicemailAction === 'hangup' ? "bg-blue-50/30 border-blue-200" : "border-zinc-100")}>
+                  <RadioGroupItem value="hangup" id="hangup" className="scale-75" />
+                  <Label htmlFor="hangup" className="cursor-pointer font-medium text-zinc-700">Immediate Hangup</Label>
+                </div>
+                <div className={cn("flex items-center space-x-2 p-2.5 rounded-lg border text-xs transition-all", data.voicemailAction === 'static_text' ? "bg-blue-50/30 border-blue-200" : "border-zinc-100")}>
+                  <RadioGroupItem value="static_text" id="static_text" className="scale-75" />
+                  <Label htmlFor="static_text" className="cursor-pointer font-medium text-zinc-700">Static Text</Label>
+                </div>
+                <div className={cn("flex items-center space-x-2 p-2.5 rounded-lg border text-xs transition-all", data.voicemailAction === 'prompt' ? "bg-blue-50/30 border-blue-200" : "border-zinc-100")}>
+                  <RadioGroupItem value="prompt" id="prompt" className="scale-75" />
+                  <Label htmlFor="prompt" className="cursor-pointer font-medium text-zinc-700">AI Prompt</Label>
+                </div>
+              </RadioGroup>
             </div>
             <div className="lg:col-span-8">
-                {data.voicemailAction !== 'hangup' ? (
-                  <Textarea 
-                    value={data.voicemailMessage} 
-                    onChange={(e) => onChange('voicemailMessage', e.target.value)} 
-                    placeholder={data.voicemailAction === 'prompt' ? "Prompt the AI on what to say in the voicemail..." : "Hey {{user_name}}, please call back..."} 
-                    className="min-h-[140px] bg-zinc-50/30 border-zinc-200 p-4 text-sm rounded-xl" 
-                  />
-                ) : (
-                  <div className="h-full min-h-[104px] flex items-center justify-center border-2 border-dashed border-zinc-50 rounded-xl bg-zinc-50/30">
-                    <p className="text-[10px] font-bold text-zinc-300 uppercase">Hangup Logic Enabled</p>
-                  </div>
-                )}
+              {data.voicemailAction !== 'hangup' ? (
+                <Textarea
+                  value={data.voicemailMessage}
+                  onChange={(e) => onChange('voicemailMessage', e.target.value)}
+                  placeholder={data.voicemailAction === 'prompt' ? "Prompt the AI on what to say in the voicemail..." : "Hey {{user_name}}, please call back..."}
+                  className="min-h-[140px] bg-zinc-50/30 border-zinc-200 p-4 text-sm rounded-xl"
+                />
+              ) : (
+                <div className="h-full min-h-[104px] flex items-center justify-center border-2 border-dashed border-zinc-50 rounded-xl bg-zinc-50/30">
+                  <p className="text-[10px] font-bold text-zinc-300 uppercase">Hangup Logic Enabled</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -122,31 +198,31 @@ const CallSettingsForm: React.FC<CallSettingsFormProps> = ({ data, onChange }) =
       <section className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <SectionHeader icon={Timer} title="System Guardrails" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-                { label: 'No Response', val: data.noResponseTime, f: 'noResponseTime', s: 's', info: 'How long the agent waits for user input before acting.' },
-                { label: 'Max Duration', val: data.maxCallDuration, f: 'maxCallDuration', s: 'm', info: 'The hard limit for the total length of a single conversation.' },
-                { label: 'Max Ringing', val: data.maxRingDuration, f: 'maxRingDuration', s: 's', info: 'Maximum time the agent will wait for the user to pick up.' }
-            ].map(item => (
-                <div key={item.f} className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-100 hover:bg-zinc-50 transition-colors group">
-                    <div className="flex justify-between items-center mb-3">
-                        <div className="flex items-center gap-1.5">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">{item.label}</label>
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger><Info size={13} className="text-zinc-300 group-hover:text-blue-500 transition-colors" /></TooltipTrigger>
-                                    <TooltipContent className="text-[10px] bg-zinc-900 text-white border-none p-2 rounded-lg shadow-xl max-w-[180px]">
-                                        {item.info}
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </div>
-                        <span className="text-[10px] font-mono font-bold text-zinc-600 bg-white border border-zinc-200 px-2 py-0.5 rounded shadow-sm">
-                            {item.val}{item.s}
-                        </span>
-                    </div>
-                    <Slider value={[item.val || 0]} onValueChange={(v) => onChange(item.f as any, v[0])} />
+          {[
+            { label: 'No Response', val: data.noResponseTime, f: 'noResponseTime', s: 's', info: 'How long the agent waits for user input before acting.' },
+            { label: 'Max Duration', val: data.maxCallDuration, f: 'maxCallDuration', s: 'm', info: 'The hard limit for the total length of a single conversation.' },
+            { label: 'Max Ringing', val: data.maxRingDuration, f: 'maxRingDuration', s: 's', info: 'Maximum time the agent will wait for the user to pick up.' }
+          ].map(item => (
+            <div key={item.f} className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-100 hover:bg-zinc-50 transition-colors group">
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center gap-1.5">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">{item.label}</label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger><Info size={13} className="text-zinc-300 group-hover:text-blue-500 transition-colors" /></TooltipTrigger>
+                      <TooltipContent className="text-[10px] bg-zinc-900 text-white border-none p-2 rounded-lg shadow-xl max-w-[180px]">
+                        {item.info}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-            ))}
+                <span className="text-[10px] font-mono font-bold text-zinc-600 bg-white border border-zinc-200 px-2 py-0.5 rounded shadow-sm">
+                  {item.val}{item.s}
+                </span>
+              </div>
+              <Slider value={[item.val || 0]} onValueChange={(v) => onChange(item.f as any, v[0])} />
+            </div>
+          ))}
         </div>
       </section>
     </div>

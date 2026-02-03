@@ -43,11 +43,6 @@ export interface AgentFormData {
   name: string;
   description: string;
   numberId: number | null;
-  
-  welcomeMessage: string;    
-  firstSpeaker: 'ai' | 'user' | 'ai_dynamic'; 
-  userGreetingType: 'static' | 'dynamic';
-  waitDuration: number;
 }
 
 export interface AgentFormProps {
@@ -167,6 +162,10 @@ export interface AudioSettingsFormProps {
 export type VoicemailAction = 'hangup' | 'static_text' | 'prompt';
 
 export interface CallSettingsFormData {
+  welcomeMessage: string;
+  firstSpeaker: 'ai' | 'user' | 'ai_dynamic';
+  userGreetingType: 'static' | 'dynamic';
+  waitDuration: number;
   reEngageEnabled: boolean;
   reEngageMessage: string;
   reEngageAttempts: number; 

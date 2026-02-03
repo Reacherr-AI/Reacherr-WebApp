@@ -7,7 +7,9 @@ const DashboardLayout: React.FC = () => {
   const location = useLocation();
 
   // Define paths that trigger "Focus Mode" (hiding the main app sidebar)
-  const isFocusMode = location.pathname.startsWith('/agents/create') || 
+  const isAgentDetail = location.pathname.startsWith('/agents/') && location.pathname !== '/agents';
+  const isFocusMode = isAgentDetail ||
+                      location.pathname.startsWith('/agents/create') || 
                       location.pathname.startsWith('/agents/configure');
 
   return (
