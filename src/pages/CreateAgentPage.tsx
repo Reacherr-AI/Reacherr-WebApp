@@ -64,16 +64,16 @@ import { useToast } from '../context/ToastContext';
 const mapApiResponseToState = (voiceAgent: Partial<VoiceAgent>, llm: Partial<ReacherrLLM>) => {
   return {
     ...INITIAL_AGENT_STATE, // Start with clean defaults
-    
+
     // Identity
     agentId: voiceAgent.agentId || "",
     agentName: voiceAgent.agentName || "",
-    
+
     // Global Config
     channel: "voice",
     language: voiceAgent.language || "en-US",
     webhookUrl: voiceAgent.webhookUrl || "",
-    
+
     // Call Settings
     maxCallDurationMs: voiceAgent.maxCallDurationMs || INITIAL_AGENT_STATE.maxCallDurationMs,
     ringTimeOutMs: voiceAgent.ringTimeOutMs || INITIAL_AGENT_STATE.ringTimeOutMs,
@@ -98,11 +98,11 @@ const mapApiResponseToState = (voiceAgent: Partial<VoiceAgent>, llm: Partial<Rea
 
     // Post Call Analysis
     postCallAnalysis: {
-      webhookEnabled: !!voiceAgent.webhookUrl, 
+      webhookEnabled: !!voiceAgent.webhookUrl,
       webhookUrl: voiceAgent.webhookUrl || "",
       webhookTimeout: voiceAgent.webhookTimeoutMs || 45,
       extractionItems: (voiceAgent.postCallAnalysisData || []).map((item: any) => ({
-        id: item.name, 
+        id: item.name,
         name: item.name,
         description: item.description,
         type: item.type === 'enum' ? 'selector' : item.type === 'string' ? 'text' : item.type,
@@ -118,7 +118,7 @@ const mapApiResponseToState = (voiceAgent: Partial<VoiceAgent>, llm: Partial<Rea
       action: voiceAgent.voiceMailDetection?.action?.type || 'hangup',
       message: (voiceAgent.voiceMailDetection?.action as any)?.text || (voiceAgent.voiceMailDetection?.action as any)?.promptId || ""
     },
-    
+
     // Metadata
     versionMetadata: {
       version: voiceAgent.version || 0,
@@ -154,7 +154,7 @@ const CreateAgentPage: React.FC = () => {
   const location = useLocation();
   const auth = useContext(AuthContext);
   const { addToast } = useToast();
-  
+
   const [phoneList, setPhoneList] = useState<PhoneNumber[]>([]);
 
   // Fetch Phone Numbers
@@ -221,9 +221,9 @@ const CreateAgentPage: React.FC = () => {
         let llmData = {};
         // Only fetch LLM if it's a Reacherr LLM type
         if (agentData.responseEngine?.type === 'REACHERR_LLM' && (agentData.responseEngine as any).llmId) {
-            const llmId = (agentData.responseEngine as any).llmId;
-            const llmRes = await getReacherrLlm(llmId);
-            llmData = llmRes.data;
+          const llmId = (agentData.responseEngine as any).llmId;
+          const llmRes = await getReacherrLlm(llmId);
+          llmData = llmRes.data;
         }
 
         const mergedData = mapApiResponseToState(agentData, llmData);
@@ -263,10 +263,6 @@ const CreateAgentPage: React.FC = () => {
     name: agentData.agentName,
     description: agentData.reacherrLlmData.generalPrompt,
     numberId: null,
-    welcomeMessage: agentData.reacherrLlmData.beginMessage,
-    firstSpeaker: agentData.reacherrLlmData.startSpeaker,
-    userGreetingType: agentData.userGreetingType as any || 'static',
-    waitDuration: agentData.waitDurationMs || 1000
   }), [agentData]);
 
   const derivedLLMData: LLMSettingsFormData = useMemo(() => ({
@@ -280,31 +276,35 @@ const CreateAgentPage: React.FC = () => {
   }), [agentData]);
 
   const derivedAudioData: AudioSettingsFormData = useMemo(() => ({
-      language: agentData.language,
-      sttProvider: agentData.sttConfig.provider,
-      sttModel: agentData.sttConfig.model,
-      sttKeywords: agentData.sttConfig.settings?.keywords?.join(', ') || '',
-      ttsProvider: agentData.ttsConfig.provider,
-      ttsModel: agentData.ttsConfig.model,
-      ttsVoiceId: agentData.ttsConfig.voiceId,
-      voice:{
-        voiceId: agentData.ttsConfig.voice?.voiceId || agentData.ttsConfig.voiceId,
-        displayName: agentData.ttsConfig.voice?.displayName || '',
-        gender: agentData.ttsConfig.voice?.gender || '',
-        provider: agentData.ttsConfig.voice?.provider || '',
-        accent: agentData.ttsConfig.voice?.accent || '',
-        previewUrl: agentData.ttsConfig.voice?.previewUrl || ''
-      },
-      speed: agentData.ttsConfig.settings.voiceSpeed,
-      stability: agentData.ttsConfig.settings.stability,
-      similarityBoost: agentData.ttsConfig.settings.similarityBoost,
-      styleExaggeration: agentData.ttsConfig.settings.styleExaggeration,
-      volume: agentData.ttsConfig.settings.volume,
-      pitch: agentData.ttsConfig.settings.pitch || 0,
-      temperature: agentData.ttsConfig.settings.voiceTemperature
+    language: agentData.language,
+    sttProvider: agentData.sttConfig.provider,
+    sttModel: agentData.sttConfig.model,
+    sttKeywords: agentData.sttConfig.settings?.keywords?.join(', ') || '',
+    ttsProvider: agentData.ttsConfig.provider,
+    ttsModel: agentData.ttsConfig.model,
+    ttsVoiceId: agentData.ttsConfig.voiceId,
+    voice: {
+      voiceId: agentData.ttsConfig.voice?.voiceId || agentData.ttsConfig.voiceId,
+      displayName: agentData.ttsConfig.voice?.displayName || '',
+      gender: agentData.ttsConfig.voice?.gender || '',
+      provider: agentData.ttsConfig.voice?.provider || '',
+      accent: agentData.ttsConfig.voice?.accent || '',
+      previewUrl: agentData.ttsConfig.voice?.previewUrl || ''
+    },
+    speed: agentData.ttsConfig.settings.voiceSpeed,
+    stability: agentData.ttsConfig.settings.stability,
+    similarityBoost: agentData.ttsConfig.settings.similarityBoost,
+    styleExaggeration: agentData.ttsConfig.settings.styleExaggeration,
+    volume: agentData.ttsConfig.settings.volume,
+    pitch: agentData.ttsConfig.settings.pitch || 0,
+    temperature: agentData.ttsConfig.settings.voiceTemperature
   }), [agentData]);
 
   const derivedCallSettings: CallSettingsFormData = useMemo(() => ({
+    welcomeMessage: agentData.reacherrLlmData.beginMessage,
+    firstSpeaker: agentData.reacherrLlmData.startSpeaker,
+    userGreetingType: agentData.userGreetingType as any || 'static',
+    waitDuration: agentData.waitDurationMs || 1000,
     reEngageEnabled: agentData.reEngageAttempts > 0,
     reEngageMessage: agentData.reEngageMessage,
     reEngageAttempts: agentData.reEngageAttempts,
@@ -330,7 +330,7 @@ const CreateAgentPage: React.FC = () => {
 
   const derivedFunctionData: FunctionSettingsFormData = useMemo(() => {
     const tools = agentData.reacherrLlmData.generalTools || [];
-    
+
     const transferTool = tools.find((t: any) => t.type === 'transfer_call');
     const smsTool = tools.find((t: any) => t.type === 'send_sms');
     const bookingTool = tools.find((t: any) => t.type === 'book_appointment_cal');
@@ -351,30 +351,30 @@ const CreateAgentPage: React.FC = () => {
 
     return {
       transferEnabled: !!transferTool,
-      transferDetails: { 
-        name: transferTool?.name || 'transfer_human', 
-        description: transferTool?.description || 'Transfers the call to a human agent.', 
-        phoneNumber: transferTool?.transferDestination || '', 
-        countryCode: '', isoCode: '' 
+      transferDetails: {
+        name: transferTool?.name || 'transfer_human',
+        description: transferTool?.description || 'Transfers the call to a human agent.',
+        phoneNumber: transferTool?.transferDestination || '',
+        countryCode: '', isoCode: ''
       },
       smsEnabled: !!smsTool,
-      smsDetails: { 
-        name: smsTool?.name || 'send_follow_up_sms', 
-        description: smsTool?.description || 'Sends a follow-up SMS to the user.', 
-        content: smsTool?.content || '', 
+      smsDetails: {
+        name: smsTool?.name || 'send_follow_up_sms',
+        description: smsTool?.description || 'Sends a follow-up SMS to the user.',
+        content: smsTool?.content || '',
         smsType: smsTool?.smsType || 'static'
       },
       bookingEnabled: !!bookingTool,
-      bookingDetails: { 
-        calComApiKey: bookingTool?.calApiKey || '', 
-        eventTypeId: bookingTool?.eventTypeId || '', 
-        timezone: bookingTool?.timezone || '' 
+      bookingDetails: {
+        calComApiKey: bookingTool?.calApiKey || '',
+        eventTypeId: bookingTool?.eventTypeId || '',
+        timezone: bookingTool?.timezone || ''
       },
       checkAvailabilityEnabled: !!checkAvailabilityTool,
-      checkAvailabilityDetails: { 
-        calComApiKey: checkAvailabilityTool?.calApiKey || '', 
-        eventTypeId: checkAvailabilityTool?.eventTypeId || '', 
-        timezone: checkAvailabilityTool?.timezone || '' 
+      checkAvailabilityDetails: {
+        calComApiKey: checkAvailabilityTool?.calApiKey || '',
+        eventTypeId: checkAvailabilityTool?.eventTypeId || '',
+        timezone: checkAvailabilityTool?.timezone || ''
       },
       customFunctions: customTools,
     };
@@ -387,21 +387,17 @@ const CreateAgentPage: React.FC = () => {
     switch (field) {
       case 'name': updateField('agentName', value); break;
       case 'description': updateField('reacherrLlmData.generalPrompt', value); break;
-      case 'welcomeMessage': updateField('reacherrLlmData.beginMessage', value); break;
-      case 'firstSpeaker': updateField('reacherrLlmData.startSpeaker', value); break;
-      case 'userGreetingType': updateField('userGreetingType', value); break;
-      case 'waitDuration': updateField('waitDurationMs', value); break;
     }
   };
 
   const handleLLMChange = (field: keyof LLMSettingsFormData, value: any) => {
-    switch(field) {
-        case 'provider': updateField('reacherrLlmData.provider', value); break;
-        case 'model': updateField('reacherrLlmData.model', value); break;
-        case 'maxTokens': updateField('reacherrLlmData.maxTokens', value); break;
-        case 'temperature': updateField('reacherrLlmData.temperature', value); break;
-        case 'topK': updateField('reacherrLlmData.topK', value); break;
-        // Knowledge base mapping logic would go here
+    switch (field) {
+      case 'provider': updateField('reacherrLlmData.provider', value); break;
+      case 'model': updateField('reacherrLlmData.model', value); break;
+      case 'maxTokens': updateField('reacherrLlmData.maxTokens', value); break;
+      case 'temperature': updateField('reacherrLlmData.temperature', value); break;
+      case 'topK': updateField('reacherrLlmData.topK', value); break;
+      // Knowledge base mapping logic would go here
     }
   };
 
@@ -425,29 +421,33 @@ const CreateAgentPage: React.FC = () => {
   };
 
   const handleCallSettingChange = (field: keyof CallSettingsFormData, value: any) => {
-    switch(field) {
-        case 'reEngageEnabled': 
-            // Logic: if disabled, maybe set attempts to 0 or have a flag in state?
-            // For now just updating state if it matches
-            break;
-        case 'reEngageMessage': updateField('reEngageMessage', value); break;
-        case 'reEngageAttempts': updateField('reEngageAttempts', value); break;
-        case 'ivrHangupEnabled': updateField('ivrhangup', value); break;
-        case 'voicemailDetectionEnabled': updateField('voicemailDetection.enabled', value); break;
-        case 'voicemailAction': updateField('voicemailDetection.action', value); break;
-        case 'voicemailMessage': updateField('voicemailDetection.message', value); break;
-        case 'noResponseTime': updateField('noResponseTimeoutMs', value * 1000); break;
-        case 'maxCallDuration': updateField('maxCallDurationMs', value * 60000); break;
-        case 'maxRingDuration': updateField('ringTimeOutMs', value * 1000); break;
+    switch (field) {
+      case 'welcomeMessage': updateField('reacherrLlmData.beginMessage', value); break;
+      case 'firstSpeaker': updateField('reacherrLlmData.startSpeaker', value); break;
+      case 'userGreetingType': updateField('userGreetingType', value); break;
+      case 'waitDuration': updateField('waitDurationMs', value); break;
+      case 'reEngageEnabled':
+        // Logic: if disabled, maybe set attempts to 0 or have a flag in state?
+        // For now just updating state if it matches
+        break;
+      case 'reEngageMessage': updateField('reEngageMessage', value); break;
+      case 'reEngageAttempts': updateField('reEngageAttempts', value); break;
+      case 'ivrHangupEnabled': updateField('ivrhangup', value); break;
+      case 'voicemailDetectionEnabled': updateField('voicemailDetection.enabled', value); break;
+      case 'voicemailAction': updateField('voicemailDetection.action', value); break;
+      case 'voicemailMessage': updateField('voicemailDetection.message', value); break;
+      case 'noResponseTime': updateField('noResponseTimeoutMs', value * 1000); break;
+      case 'maxCallDuration': updateField('maxCallDurationMs', value * 60000); break;
+      case 'maxRingDuration': updateField('ringTimeOutMs', value * 1000); break;
     }
   };
 
   const handlePostCallChange = (field: keyof PostCallAnalysisData, value: any) => {
-    switch(field) {
-        case 'extractionItems': updateField('postCallAnalysis.extractionItems', value); break;
-        case 'webhookEnabled': updateField('postCallAnalysis.webhookEnabled', value); break;
-        case 'webhookUrl': updateField('postCallAnalysis.webhookUrl', value); break;
-        case 'webhookTimeout': updateField('postCallAnalysis.webhookTimeout', value); break;
+    switch (field) {
+      case 'extractionItems': updateField('postCallAnalysis.extractionItems', value); break;
+      case 'webhookEnabled': updateField('postCallAnalysis.webhookEnabled', value); break;
+      case 'webhookUrl': updateField('postCallAnalysis.webhookUrl', value); break;
+      case 'webhookTimeout': updateField('postCallAnalysis.webhookTimeout', value); break;
     }
   };
 
@@ -470,7 +470,7 @@ const CreateAgentPage: React.FC = () => {
 
     let newTools = currentTools;
 
-    switch(field) {
+    switch (field) {
       case 'transferEnabled':
         if (value) {
           const { transferDetails } = derivedFunctionData;
@@ -487,9 +487,9 @@ const CreateAgentPage: React.FC = () => {
       case 'transferDetails':
         const { transferDetails } = value;
         newTools = updateOrAddTool('transfer_call', {
-            name: transferDetails.name,
-            description: transferDetails.description,
-            transferDestination: transferDetails.phoneNumber,
+          name: transferDetails.name,
+          description: transferDetails.description,
+          transferDestination: transferDetails.phoneNumber,
         });
         break;
 
@@ -510,13 +510,13 @@ const CreateAgentPage: React.FC = () => {
       case 'smsDetails':
         const { smsDetails } = value;
         newTools = updateOrAddTool('send_sms', {
-            name: smsDetails.name,
-            description: smsDetails.description,
-            content: smsDetails.content,
-            smsType: smsDetails.smsType,
+          name: smsDetails.name,
+          description: smsDetails.description,
+          content: smsDetails.content,
+          smsType: smsDetails.smsType,
         });
         break;
-      
+
       case 'bookingEnabled':
         if (value) {
           const { bookingDetails } = derivedFunctionData;
@@ -533,9 +533,9 @@ const CreateAgentPage: React.FC = () => {
       case 'bookingDetails':
         const { bookingDetails } = value;
         newTools = updateOrAddTool('book_appointment_cal', {
-            calApiKey: bookingDetails.calComApiKey,
-            eventTypeId: bookingDetails.eventTypeId,
-            timezone: bookingDetails.timezone,
+          calApiKey: bookingDetails.calComApiKey,
+          eventTypeId: bookingDetails.eventTypeId,
+          timezone: bookingDetails.timezone,
         });
         break;
 
@@ -555,29 +555,29 @@ const CreateAgentPage: React.FC = () => {
       case 'checkAvailabilityDetails':
         const { checkAvailabilityDetails } = value;
         newTools = updateOrAddTool('check_availability_cal', {
-            calApiKey: checkAvailabilityDetails.calComApiKey,
-            eventTypeId: checkAvailabilityDetails.eventTypeId,
-            timezone: checkAvailabilityDetails.timezone,
+          calApiKey: checkAvailabilityDetails.calComApiKey,
+          eventTypeId: checkAvailabilityDetails.eventTypeId,
+          timezone: checkAvailabilityDetails.timezone,
         });
         break;
 
       case 'customFunctions':
         const nonCustomTools = currentTools.filter((t: any) => t.type !== 'custom');
         const newCustomTools = (value as CustomFunction[]).map(f => ({
-            type: 'custom',
-            name: f.name,
-            description: f.description,
-            url: f.endpointUrl,
-            method: f.method,
-            headers: f.headers.reduce((acc:any, h) => ({...acc, [h.key]: h.value}), {}),
-            timeoutMs: f.timeoutMs,
-            speakAfterExecution: f.speakAfterExecution,
-            speakDuringExecution: f.speakDuringExecution
+          type: 'custom',
+          name: f.name,
+          description: f.description,
+          url: f.endpointUrl,
+          method: f.method,
+          headers: f.headers.reduce((acc: any, h) => ({ ...acc, [h.key]: h.value }), {}),
+          timeoutMs: f.timeoutMs,
+          speakAfterExecution: f.speakAfterExecution,
+          speakDuringExecution: f.speakDuringExecution
         }));
         newTools = [...nonCustomTools, ...newCustomTools];
         break;
     }
-    
+
     updateField('reacherrLlmData.generalTools', newTools);
   };
 
@@ -598,7 +598,7 @@ const CreateAgentPage: React.FC = () => {
         language: agentData.language,
         webhookUrl: agentData.postCallAnalysis.webhookUrl, // Using postCallAnalysis webhook as the main one if aligned
         webhookTimeoutMs: agentData.postCallAnalysis.webhookTimeout,
-        
+
         maxCallDurationMs: agentData.maxCallDurationMs,
         ringTimeOutMs: agentData.ringTimeOutMs,
         noResponseTimeoutMs: agentData.noResponseTimeoutMs,
@@ -610,29 +610,29 @@ const CreateAgentPage: React.FC = () => {
 
         ttsConfig: agentData.ttsConfig,
         sttConfig: agentData.sttConfig,
-        
+
         postCallAnalysisData: agentData.postCallAnalysis.extractionItems.filter(i => i.enabled).map(item => ({
-             name: item.name,
-             description: item.description,
-             type: item.type === 'selector' ? 'enum' : item.type === 'text' ? 'string' : item.type,
-             choices: item.options
+          name: item.name,
+          description: item.description,
+          type: item.type === 'selector' ? 'enum' : item.type === 'text' ? 'string' : item.type,
+          choices: item.options
         })),
 
         enableVoicemailDetection: agentData.voicemailDetection.enabled,
         voiceMailDetection: {
-             action: {
-                 type: agentData.voicemailDetection.action,
-                 text: agentData.voicemailDetection.message // Assuming 'text' field carries the message
-             } as any
+          action: {
+            type: agentData.voicemailDetection.action,
+            text: agentData.voicemailDetection.message // Assuming 'text' field carries the message
+          } as any
         },
 
         version: agentData.versionMetadata.version,
         isPublished: true,
         versionDescription: publishData?.description || agentData.versionMetadata.versionDescription,
-        
+
         responseEngine: {
-            type: 'REACHERR_LLM',
-            llmId: agentData.reacherrLlmData.llmId
+          type: 'REACHERR_LLM',
+          llmId: agentData.reacherrLlmData.llmId
         }
       };
 
@@ -649,14 +649,14 @@ const CreateAgentPage: React.FC = () => {
           if (p.inboundAgentId === agentData.agentId || p.outboundAgentId === agentData.agentId) {
             const num = p.phoneNumber;
             const update = updates.get(num) || {};
-            
+
             if (p.inboundAgentId === agentData.agentId && (!inboundEnabled || selectedInbound !== num)) {
               update.inboundAgentId = null;
             }
             if (p.outboundAgentId === agentData.agentId && (!outboundEnabled || selectedOutbound !== num)) {
               update.outboundAgentId = null;
             }
-            
+
             if (Object.keys(update).length > 0) {
               updates.set(num, update);
             }
@@ -704,7 +704,7 @@ const CreateAgentPage: React.FC = () => {
     if (isLoading || isConfigLoading || !appCapabilities) return <Skeleton className="h-full w-full rounded-3xl" />;
     switch (activeTab) {
       case 'agent': return <AgentForm data={derivedAgentFormData} onChange={handleAgentFormChange} />;
-      case 'llm': return <LLMSettingsForm data={derivedLLMData} onChange={handleLLMChange} availableKBs={[]} capabilities = {appCapabilities.llm} />;
+      case 'llm': return <LLMSettingsForm data={derivedLLMData} onChange={handleLLMChange} availableKBs={[]} capabilities={appCapabilities.llm} />;
       case 'audio-settings': return <AudioSettingsForm data={derivedAudioData} onChange={handleAudioChange} capabilities={appCapabilities.voice} />;
       case 'call-settings': return <CallSettingsForm data={derivedCallSettings} onChange={handleCallSettingChange} />;
       case 'post-call': return <PostCallAnalysisForm data={derivedPostCallData} onChange={handlePostCallChange} />;
@@ -723,25 +723,25 @@ const CreateAgentPage: React.FC = () => {
 
   return (
     <div className="h-screen bg-[#F9FAFB] p-4 lg:p-5 flex flex-col gap-4 overflow-hidden antialiased">
-      
+
       {/* FLOATING HEADER */}
       <header className="bg-white rounded-2xl border border-zinc-100 px-6 py-3 shadow-sm shrink-0 z-30 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Button variant="ghost" size="icon" onClick={() => navigate('/agents')} className="rounded-xl border border-zinc-100 hover:bg-zinc-50">
             <ChevronLeft size={20} className="text-zinc-600" />
           </Button>
-          
+
           <div className="flex flex-col gap-0.5 min-w-[220px]">
             <div className="flex items-center gap-2 group">
               {isEditingName ? (
                 <div className="flex items-center gap-1.5">
-                  <Input 
-                    value={agentData.agentName} 
+                  <Input
+                    value={agentData.agentName}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateField('agentName', e.target.value)}
                     className="h-8 text-sm font-bold bg-zinc-50 border-zinc-200"
                     onBlur={() => setIsEditingName(false)} autoFocus
                   />
-                  <Button size="icon" className="h-7 w-7 bg-zinc-900" onClick={() => setIsEditingName(false)}><Check size={14} className="text-white"/></Button>
+                  <Button size="icon" className="h-7 w-7 bg-zinc-900" onClick={() => setIsEditingName(false)}><Check size={14} className="text-white" /></Button>
                 </div>
               ) : (
                 <>
@@ -754,14 +754,14 @@ const CreateAgentPage: React.FC = () => {
             </div>
             <div className="flex items-center gap-3 text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
               {isAutoSaving ? (
-                 <div className="flex items-center gap-1.5 text-blue-500"><Loader2 size={10} className="animate-spin" /> Saving...</div>
+                <div className="flex items-center gap-1.5 text-blue-500"><Loader2 size={10} className="animate-spin" /> Saving...</div>
               ) : lastSaved ? (
-                 <div className="flex items-center gap-1.5 text-emerald-500"><Cloud size={10} /> Saved {lastSaved.toLocaleTimeString()}</div>
+                <div className="flex items-center gap-1.5 text-emerald-500"><Cloud size={10} /> Saved {lastSaved.toLocaleTimeString()}</div>
               ) : (
-                 <span>Draft Mode</span>
+                <span>Draft Mode</span>
               )}
               <span className="h-3 w-px bg-zinc-200" />
-              <div className="flex items-center gap-1.5 text-blue-600"><Zap size={10} fill="currentColor"/> 1050ms Avg. Latency</div>
+              <div className="flex items-center gap-1.5 text-blue-600"><Zap size={10} fill="currentColor" /> 1050ms Avg. Latency</div>
             </div>
           </div>
         </div>
@@ -779,7 +779,7 @@ const CreateAgentPage: React.FC = () => {
               <Phone size={15} className="text-emerald-500" /> TEST CALL
             </Button>
           </div>
-          <Button 
+          <Button
             disabled={isSaving}
             onClick={() => setIsLaunchModalOpen(true)}
             className="bg-zinc-900 hover:bg-zinc-800 text-white px-8 rounded-xl h-11 text-sm font-bold shadow-lg transition-all active:scale-95"
@@ -790,7 +790,7 @@ const CreateAgentPage: React.FC = () => {
       </header>
 
       {isLaunchModalOpen && (
-        <LaunchAgentModal 
+        <LaunchAgentModal
           data={agentData.versionMetadata}
           agentId={agentData.agentId}
           phoneList={phoneList}
@@ -804,7 +804,7 @@ const CreateAgentPage: React.FC = () => {
       )}
 
       {/* WORKSPACE */}
-      <div className="flex flex-1 gap-4 overflow-hidden w-full max-w-[1700px] mx-auto">
+      <div className="flex flex-1 gap-4 overflow-hidden w-full max-w-[1700px] mx-auto items-stretch">
         <aside className="w-64 bg-white rounded-2xl border border-zinc-100 p-5 flex flex-col gap-1 shadow-sm shrink-0 overflow-y-auto">
           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] px-4 mb-4">Configuration</p>
           <nav className="space-y-1.5">
@@ -825,13 +825,50 @@ const CreateAgentPage: React.FC = () => {
           </nav>
         </aside>
 
-        <main className="flex-1 bg-white rounded-2xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-y-auto p-10">
-          <div className="max-w-[1300px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {renderTabContent()}
-          </div>
+        <main className="flex-1 h-full bg-white rounded-2xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-y-auto p-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          {renderTabContent()}
         </main>
+
+        <aside className="hidden xl:block xl:col-span-3 h-full">
+          <section className="bg-white rounded-2xl border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden h-full flex flex-col">
+            <div className="p-5 border-b border-zinc-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-emerald-400" />
+                <p className="text-xs font-bold text-zinc-600 uppercase tracking-widest">Test Your Agent</p>
+              </div>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-zinc-700">
+                <span className="text-lg leading-none">⋯</span>
+              </Button>
+            </div>
+            <div className="p-5 space-y-4 flex-1 flex flex-col">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" className="flex-1 h-9 text-xs font-bold rounded-xl border-zinc-200">
+                  <Phone size={14} className="text-emerald-500" /> Test Audio
+                </Button>
+                <Button variant="outline" className="flex-1 h-9 text-xs font-bold rounded-xl border-zinc-200">
+                  <MessageCircle size={14} className="text-blue-500" /> Test Chat
+                </Button>
+              </div>
+              <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 flex flex-col items-center justify-center text-center gap-2 flex-1 min-h-[220px]">
+                <div className="h-12 w-12 rounded-full bg-white border border-zinc-200 flex items-center justify-center shadow-sm">
+                  <Phone size={18} className="text-zinc-400" />
+                </div>
+                <p className="text-xs font-semibold text-zinc-600">Start a test call</p>
+                <p className="text-[10px] text-zinc-400 max-w-[180px]">
+                  Validate audio quality and timing before you launch.
+                </p>
+              </div>
+              <Button className="w-full h-9 rounded-xl text-xs font-bold bg-zinc-900 hover:bg-zinc-800">
+                Test
+              </Button>
+              <p className="text-[10px] text-zinc-400 text-center">
+                Call transfer isn’t supported in webcall.
+              </p>
+            </div>
+          </section>
+        </aside>
       </div>
-    </div>
+    </div >
   );
 };
 
