@@ -5,13 +5,17 @@ import {
   Search,
   X,
   Loader2,
-  PhoneCall
+  PhoneCall,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   createPhoneNumber,
+  getAllAgentsData,
   listAvailableNumbers,
-  listPhoneNumber
+  listPhoneNumber,
+  updatePhoneNumber
 } from '@/api/client';
 import {
   CountryCodeType,
@@ -19,6 +23,7 @@ import {
   type AvailableNumberRequest,
   type PhoneNumber as PhoneNumberDto
 } from '@/types';
+import type { AgentSummary } from '@/types/agentList';
 
 const providers = ['Twilio'] as const;
 
@@ -27,6 +32,10 @@ type Provider = (typeof providers)[number];
 type ModalType = 'buy' | 'sip' | null;
 
 type OutboundTransport = 'TCP' | 'UDP' | 'TLS';
+type UpdatePhoneNumberPayload = {
+  inboundAgentId?: string | null;
+  outboundAgentId?: string | null;
+};
 
 const providerTypeMap: Record<Provider, PhoneNumberType> = {
   Twilio: PhoneNumberType.TWILIO
@@ -47,14 +56,18 @@ const PhoneNumbersPage: React.FC = () => {
   const [numberType, setNumberType] = useState<'standard' | 'tollfree'>('standard');
   const [outboundTransport, setOutboundTransport] = useState<OutboundTransport>('TCP');
   const [availableNumbers, setAvailableNumbers] = useState<Array<{ id: string; number: string }>>([]);
-  const [ownedNumbers, setOwnedNumbers] = useState<
-    Array<{ id: string; number: string; provider: PhoneNumberType }>
-  >([]);
+  const [ownedNumbers, setOwnedNumbers] = useState<PhoneNumberDto[]>([]);
+  const [selectedNumberId, setSelectedNumberId] = useState<string | null>(null);
+  const [agents, setAgents] = useState<AgentSummary[]>([]);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
+  const [agentsError, setAgentsError] = useState<string | null>(null);
   const [isLoadingAvailable, setIsLoadingAvailable] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoadingOwned, setIsLoadingOwned] = useState(false);
   const [availableError, setAvailableError] = useState<string | null>(null);
   const [ownedError, setOwnedError] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [isUpdatingNumber, setIsUpdatingNumber] = useState(false);
   const [buyingNumberId, setBuyingNumberId] = useState<string | null>(null);
   const [availablePage, setAvailablePage] = useState(0);
   const [availableLast, setAvailableLast] = useState(true);
@@ -63,7 +76,7 @@ const PhoneNumbersPage: React.FC = () => {
   const filteredNumbers = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return ownedNumbers;
-    return ownedNumbers.filter((item) => item.number.toLowerCase().includes(query));
+    return ownedNumbers.filter((item) => item.phoneNumber.toLowerCase().includes(query));
   }, [ownedNumbers, searchQuery]);
 
   useEffect(() => {
@@ -73,13 +86,12 @@ const PhoneNumbersPage: React.FC = () => {
       setOwnedError(null);
       try {
         const response = await listPhoneNumber();
-        const next = (response.data || []).map((item: PhoneNumberDto) => ({
-          id: item.phoneNumber,
-          number: item.phoneNumber,
-          provider: item.phoneNumberType
-        }));
-        if (isMounted) setOwnedNumbers(next);
-      } catch (error) {
+        const next = response.data || [];
+        if (isMounted) {
+          setOwnedNumbers(next);
+          setSelectedNumberId(next[0]?.phoneNumber ?? null);
+        }
+      } catch {
         if (isMounted) setOwnedError('Unable to load your numbers.');
       } finally {
         if (isMounted) setIsLoadingOwned(false);
@@ -87,6 +99,37 @@ const PhoneNumbersPage: React.FC = () => {
     };
 
     loadOwnedNumbers();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ownedNumbers.length) {
+      setSelectedNumberId(null);
+      return;
+    }
+    if (!selectedNumberId || !ownedNumbers.some((item) => item.phoneNumber === selectedNumberId)) {
+      setSelectedNumberId(ownedNumbers[0].phoneNumber);
+    }
+  }, [ownedNumbers, selectedNumberId]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadAgents = async () => {
+      setIsLoadingAgents(true);
+      setAgentsError(null);
+      try {
+        const response = await getAllAgentsData(0, 200);
+        if (isMounted) setAgents(response.data || []);
+      } catch {
+        if (isMounted) setAgentsError('Unable to load agents.');
+      } finally {
+        if (isMounted) setIsLoadingAgents(false);
+      }
+    };
+
+    loadAgents();
     return () => {
       isMounted = false;
     };
@@ -121,7 +164,7 @@ const PhoneNumbersPage: React.FC = () => {
           setAvailableLast(Boolean(response.data?.last));
           setAvailablePage(page);
         }
-      } catch (error) {
+      } catch {
         if (isMounted) setAvailableError('Unable to load available numbers.');
       } finally {
         if (isMounted) setIsLoadingAvailable(false);
@@ -153,7 +196,7 @@ const PhoneNumbersPage: React.FC = () => {
       setAvailableNumbers((prev) => [...prev, ...next]);
       setAvailableLast(Boolean(response.data?.last));
       setAvailablePage(nextPage);
-    } catch (error) {
+    } catch {
       setAvailableError('Unable to load available numbers.');
     } finally {
       setIsLoadingMore(false);
@@ -188,17 +231,11 @@ const PhoneNumbersPage: React.FC = () => {
       const created = response.data;
       if (created?.phoneNumber) {
         setAvailableNumbers((prev) => prev.filter((item) => item.id !== numberId));
-        setOwnedNumbers((prev) => [
-          {
-            id: created.phoneNumber,
-            number: created.phoneNumber,
-            provider: created.phoneNumberType
-          },
-          ...prev
-        ]);
+        setOwnedNumbers((prev) => [created, ...prev]);
+        setSelectedNumberId(created.phoneNumber);
         closeModal();
       }
-    } catch (error) {
+    } catch {
       setAvailableError('Unable to purchase this number.');
     } finally {
       setBuyingNumberId(null);
@@ -206,6 +243,48 @@ const PhoneNumbersPage: React.FC = () => {
   };
 
   const closeModal = () => setActiveModal(null);
+
+  const selectedNumber = useMemo(() => {
+    if (!ownedNumbers.length) return null;
+    return ownedNumbers.find((item) => item.phoneNumber === selectedNumberId) ?? ownedNumbers[0];
+  }, [ownedNumbers, selectedNumberId]);
+
+  const handleUpdateNumber = async (
+    phoneNumber: string,
+    updates: UpdatePhoneNumberPayload
+  ) => {
+    if (isUpdatingNumber) return;
+    const current = ownedNumbers.find((item) => item.phoneNumber === phoneNumber);
+    if (!current) return;
+
+    setIsUpdatingNumber(true);
+    setUpdateError(null);
+
+    const optimistic = {
+      ...current,
+      ...updates
+    };
+
+    setOwnedNumbers((prev) =>
+      prev.map((item) => (item.phoneNumber === phoneNumber ? (optimistic as PhoneNumberDto) : item))
+    );
+
+    try {
+      const response = await updatePhoneNumber(phoneNumber, updates as unknown as Partial<PhoneNumberDto>);
+      if (response.data?.phoneNumber) {
+        setOwnedNumbers((prev) =>
+          prev.map((item) => (item.phoneNumber === phoneNumber ? response.data : item))
+        );
+      }
+    } catch {
+      setOwnedNumbers((prev) =>
+        prev.map((item) => (item.phoneNumber === phoneNumber ? current : item))
+      );
+      setUpdateError('Unable to update phone number.');
+    } finally {
+      setIsUpdatingNumber(false);
+    }
+  };
 
   return (
     <div className="animate-in fade-in duration-300">
@@ -282,10 +361,16 @@ const PhoneNumbersPage: React.FC = () => {
                 <div className="w-full space-y-2 overflow-y-auto pb-2 text-left">
                   {filteredNumbers.map((item) => (
                     <div
-                      key={item.id}
-                      className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 shadow-sm"
+                      key={item.phoneNumber}
+                      onClick={() => setSelectedNumberId(item.phoneNumber)}
+                      className={cn(
+                        'flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition',
+                        selectedNumber?.phoneNumber === item.phoneNumber
+                          ? 'border-zinc-300 bg-zinc-50 text-zinc-900'
+                          : 'border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50'
+                      )}
                     >
-                      <span>{item.number}</span>
+                      <span>{item.phoneNumber}</span>
                       <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
                         Active
                       </span>
@@ -313,23 +398,102 @@ const PhoneNumbersPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="h-full overflow-y-auto p-6">
-                <div className="grid gap-3 md:grid-cols-2">
-                  {ownedNumbers.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
-                    >
-                      <div className="text-xs font-semibold text-zinc-500">Owned Number</div>
-                      <div className="mt-2 text-sm font-semibold text-zinc-900">{item.number}</div>
-                      <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-zinc-500">
-                        <span className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">
-                          Connected
-                        </span>
-                        <span>{providerLabelMap[item.provider]}</span>
-                      </div>
+              <div className="flex h-full flex-col">
+                <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-[34px] font-semibold tracking-tight text-zinc-900">
+                        {selectedNumber?.phoneNumber}
+                      </h2>
+                      <button
+                        type="button"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100"
+                      >
+                        <Pencil size={14} />
+                      </button>
                     </div>
-                  ))}
+                    <p className="text-xs font-semibold text-zinc-500">
+                      ID: {selectedNumber?.phoneNumber}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex h-11 items-center gap-2 rounded-lg border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 hover:bg-zinc-50"
+                    >
+                      <PhoneCall size={16} />
+                      Make an outbound call
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-7 px-6 py-8">
+                  <div>
+                    <p className="mb-2 text-[22px] font-semibold tracking-tight text-zinc-900">
+                      Inbound call agent
+                    </p>
+                    <select
+                      value={selectedNumber?.inboundAgentId ?? ''}
+                      onChange={(event) => {
+                        if (!selectedNumber) return;
+                        handleUpdateNumber(selectedNumber.phoneNumber, {
+                          inboundAgentId: event.target.value || null
+                        });
+                      }}
+                      disabled={isLoadingAgents || isUpdatingNumber}
+                      className="h-10 w-full rounded-lg border border-zinc-200 px-3 text-sm font-medium text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-50"
+                    >
+                      <option value="">None (disable inbound)</option>
+                      {agents.map((agent) => (
+                        <option key={agent.agentId} value={agent.agentId}>
+                          {agent.agentName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-[22px] font-semibold tracking-tight text-zinc-900">
+                      Outbound call agent
+                    </p>
+                    <select
+                      value={selectedNumber?.outboundAgentId ?? ''}
+                      onChange={(event) => {
+                        if (!selectedNumber) return;
+                        handleUpdateNumber(selectedNumber.phoneNumber, {
+                          outboundAgentId: event.target.value || null
+                        });
+                      }}
+                      disabled={isLoadingAgents || isUpdatingNumber}
+                      className="h-10 w-full rounded-lg border border-zinc-200 px-3 text-sm font-medium text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-50"
+                    >
+                      <option value="">None (disable outbound)</option>
+                      {agents.map((agent) => (
+                        <option key={agent.agentId} value={agent.agentId}>
+                          {agent.agentName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {(agentsError || updateError) && (
+                    <p className="text-sm font-medium text-rose-500">{agentsError ?? updateError}</p>
+                  )}
+
+                  {selectedNumber && (
+                    <div className="flex items-center gap-2 text-[11px] font-semibold text-zinc-500">
+                      <span className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">
+                        Connected
+                      </span>
+                      <span>{providerLabelMap[selectedNumber.phoneNumberType]}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
